@@ -9,6 +9,9 @@ import ovh
 
 def changeDNS(ovhclient, module):
 	msg = ''
+	if module.params['name'] == 'refresh':
+		ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
+		module.exit_json(changed=True, msg="Domain %s succesfully refreshed !" % module.params['domain'])
 	if module.params['domain'] and module.params['ip']:
 		if module.params['state'] == 'present':
 			result = ovhclient.post('/domain/zone/%s/record' % module.params['domain'],
@@ -16,7 +19,7 @@ def changeDNS(ovhclient, module):
 					subDomain=module.params['name'],
 					target=module.params['ip'])
 			if result['id']:
-				ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
+				#ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 				module.exit_json(changed=True, contents=result)
 			else:
 				module.fail_json(changed=False, msg="Cannot add %s to domain %s: %s" % (module.params['name'], module.params['domain'], result))
@@ -51,6 +54,29 @@ def changeDNS(ovhclient, module):
 		if not module.params['ip']:
 			module.fail_json(changed=False, msg="Please give an IP to add your target")
 
+def changeVRACK(ovhclient, module):
+	if module.params['vrack']:
+		if module.params['state'] == 'present':
+			result = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
+					dedicatedServer=module.params['name'])
+			if result['id']:
+				module.exit_json(changed=True, contents=result)
+			else:
+				module.fail_json(changed=False, msg="Cannot add %s to the vrack %s: %s" % (module.params['name'], module.params['vrack'], result))
+		elif module.params['state'] == 'absent':
+			result = ovhclient.delete('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
+			if result['id']:
+				module.exit_json(changed=True, contents=result)
+			else:
+				module.fail_json(changed=False, msg="Cannot remove %s from the vrack %s: %s" % (module.params['name'], module.params['vrack'], result))
+		else:
+			module.exit_json(changed=False, msg="Vrack service only uses present/absent state")
+	else:
+		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
+
+#def changeDedicated(ovhclient, module):
+
+
 def main():
 	module = AnsibleModule(
 			argument_spec = dict(
@@ -58,12 +84,17 @@ def main():
 				name  = dict(required=True),
 				service = dict(choices=['dedicated', 'dns', 'vrack'], required=True),
 				domain = dict(required=False, default='None'),
-				ip    = dict(required=False, default='None')
+				ip    = dict(required=False, default='None'),
+				vrack = dict(required=False, default='None')
 				)
 			)
 	client = ovh.Client()
 	if module.params['service'] == 'dns':
 		changeDNS(client, module)
+	elif module.params['service'] == 'vrack':
+		changeVRACK(client, module)
+	#elif module.params['service'] == 'dedicated':
+	#	changeDedicated(client, module)
 
 from ansible.module_utils.basic import *
 if __name__ == '__main__':
