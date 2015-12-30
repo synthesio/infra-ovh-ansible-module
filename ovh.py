@@ -14,15 +14,21 @@ def changeDNS(ovhclient, module):
 		module.exit_json(changed=True, msg="Domain %s succesfully refreshed !" % module.params['domain'])
 	if module.params['domain'] and module.params['ip']:
 		if module.params['state'] == 'present':
-			result = ovhclient.post('/domain/zone/%s/record' % module.params['domain'],
+			check = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
 					fieldType=u'A',
-					subDomain=module.params['name'],
-					target=module.params['ip'])
-			if result['id']:
-				#ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
-				module.exit_json(changed=True, contents=result)
+					subDomain=module.params['name'])
+			if not check:
+				result = ovhclient.post('/domain/zone/%s/record' % module.params['domain'],
+						fieldType=u'A',
+						subDomain=module.params['name'],
+						target=module.params['ip'])
+				if result['id']:
+					#ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
+					module.exit_json(changed=True, contents=result)
+				else:
+					module.fail_json(changed=False, msg="Cannot add %s to domain %s: %s" % (module.params['name'], module.params['domain'], result))
 			else:
-				module.fail_json(changed=False, msg="Cannot add %s to domain %s: %s" % (module.params['name'], module.params['domain'], result))
+				module.exit_json(changed=False, msg="%s is already registered in domain %s" % (module.params['name'], module.params['domain']))
 		elif module.params['state'] == 'modified':
 			resultget = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
 					fieldType=u'A',
@@ -57,12 +63,16 @@ def changeDNS(ovhclient, module):
 def changeVRACK(ovhclient, module):
 	if module.params['vrack']:
 		if module.params['state'] == 'present':
-			result = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
-					dedicatedServer=module.params['name'])
-			if result['id']:
-				module.exit_json(changed=True, contents=result)
+			check = ovhclient.get('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
+			if not check['vrack']:
+				result = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
+						dedicatedServer=module.params['name'])
+				if result['id']:
+					module.exit_json(changed=True, contents=result)
+				else:
+					module.fail_json(changed=False, msg="Cannot add %s to the vrack %s: %s" % (module.params['name'], module.params['vrack'], result))
 			else:
-				module.fail_json(changed=False, msg="Cannot add %s to the vrack %s: %s" % (module.params['name'], module.params['vrack'], result))
+				module.exit_json(changed=False, msg="%s is already registred in the vrack %s" % (module.params['name'], module.params['vrack']))
 		elif module.params['state'] == 'absent':
 			result = ovhclient.delete('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
 			if result['id']:
