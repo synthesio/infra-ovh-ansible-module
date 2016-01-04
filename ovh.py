@@ -84,8 +84,18 @@ def changeVRACK(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
 
-#def changeDedicated(ovhclient, module):
-
+def changeBootDedicated(ovhclient, module):
+	bootid = { 'harddisk':1, 'rescue':22 }
+	check = ovhclient.get('/dedicated/server/%s' % module.params['name'])
+	if bootid[module.params['boot']] != check['bootId']:
+		ovhclient.put('/dedicated/server/%s' % module.params['name'],
+				bootId=bootid[module.params['boot']])
+		ovhclient.post('/dedicated/server/%s/reboot' % module.params['name'])
+		module.exit_json(changed=True, msg="%s is now set to boot on %s. Reboot in progress..." % (module.params['name'], module.params['boot']))
+	else:
+		if module.params['force_reboot'] == 'yes' or module.params['force_reboot'] == 'true':
+			ovhclient.post('/dedicated/server/%s/reboot' % module.params['name'])
+		module.exit_json(changed=False, msg="%s already configured for boot on %s" % (module.params['name'], module.params['boot']))
 
 def main():
 	module = AnsibleModule(
@@ -95,7 +105,9 @@ def main():
 				service = dict(choices=['dedicated', 'dns', 'vrack'], required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
-				vrack = dict(required=False, default='None')
+				vrack = dict(required=False, default='None'),
+				boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
+				force_reboot = dict(required=False, default='no', choices=BOOLEANS)
 				)
 			)
 	client = ovh.Client()
@@ -103,8 +115,8 @@ def main():
 		changeDNS(client, module)
 	elif module.params['service'] == 'vrack':
 		changeVRACK(client, module)
-	#elif module.params['service'] == 'dedicated':
-	#	changeDedicated(client, module)
+	elif module.params['service'] == 'dedicated':
+		changeBootDedicated(client, module)
 
 from ansible.module_utils.basic import *
 if __name__ == '__main__':
