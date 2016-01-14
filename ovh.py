@@ -63,8 +63,8 @@ def changeDNS(ovhclient, module):
 def changeVRACK(ovhclient, module):
 	if module.params['vrack']:
 		if module.params['state'] == 'present':
-			check = ovhclient.get('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
-			if not check['vrack']:
+			check = ovhclient.get('/dedicated/server/%s/vrack' % (module.params['name']))
+			if not check:
 				result = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
 						dedicatedServer=module.params['name'])
 				if result['id']:
@@ -72,7 +72,7 @@ def changeVRACK(ovhclient, module):
 				else:
 					module.fail_json(changed=False, msg="Cannot add %s to the vrack %s: %s" % (module.params['name'], module.params['vrack'], result))
 			else:
-				module.exit_json(changed=False, msg="%s is already registred in the vrack %s" % (module.params['name'], module.params['vrack']))
+				module.exit_json(changed=False, msg="%s is already registered in the vrack %s" % (module.params['name'], module.params['vrack']))
 		elif module.params['state'] == 'absent':
 			result = ovhclient.delete('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
 			if result['id']:
