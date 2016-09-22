@@ -85,7 +85,7 @@ def changeVRACK(ovhclient, module):
 		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
 
 def changeBootDedicated(ovhclient, module):
-	bootid = { 'harddisk':1, 'rescue':22 }
+	bootid = { 'harddisk':1, 'rescue':1122 }
 	check = ovhclient.get('/dedicated/server/%s' % module.params['name'])
 	if bootid[module.params['boot']] != check['bootId']:
 		ovhclient.put('/dedicated/server/%s' % module.params['name'],
