@@ -7,6 +7,64 @@ except ImportError:
 
 import ovh
 
+def getStatusInstall(ovhclient, module):
+	if module.params['name']:
+		result = ovhclient.get('/dedicated/server/%s/task' % module.params['name'])
+		result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(result)))
+		module.exit_json(changed=False, msg="%s" % result['status'])
+		#return result['status']
+	else:
+		module.fail_json(changed=False, msg="Please give the service's name you want to know the install status")
+
+def launchInstall(ovhclient, module):
+	if module.params['name'] and module.params['hostname'] and module.params['template']:
+		details = {"details":{"language":"en","customHostname":module.params['hostname']},"templateName":module.params['template']}
+		ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
+				**details)
+		module.exit_json(changed=True, msg="Installation in progress on %s !" % module.params['name'])
+	else:
+		if not module.params['name']:
+			module.fail_json(changed=False, msg="Please give the service's name you want to install")
+		if not module.params['template']:
+			module.fail_json(changed=False, msg="Please give a template to install")
+		if not module.params['hostname']:
+			module.fail_json(changed=False, msg="Please give a hostname for your installation")
+
+def changeMonitoring(ovhclient, module):
+	if module.params['name'] and module.params['state']:
+		if module.params['state'] == 'present':
+			ovhclient.put('/dedicated/server/%s' % module.params['name'],
+					monitoring=True)
+			module.exit_json(changed=True, msg="Monitoring activated on %s" % module.params['name'])
+		elif module.params['state'] == 'absent':
+			ovhclient.put('/dedicated/server/%s' % module.params['name'],
+					monitoring=False)
+			module.exit_json(changed=True, msg="Monitoring deactivated on %s" % module.params['name'])
+		else:
+			module.fail_json(changed=False, msg="State modified does not match 'present' or 'absent'")
+	else:
+		if not module.params['name']:
+			module.fail_json(changed=False, msg="Please give a name to change monitoring state")
+		if not module.params['state']:
+			module.fail_json(changed=False, msg="Please give a state for your monitoring")
+
+def changeReverse(ovhclient, module):
+	if module.params['domain'] and module.params['ip'] :
+		fqdn = module.params['name'] + '.' + module.params['domain'] + '.'
+		result = ovhclient.get('/ip/%s/reverse/%s' % (module.params['ip'], module.params['ip']))
+		if result['reverse'] != fqdn:
+			ovhclient.post('/ip/%s/reverse' % module.params['ip'],
+					ipReverse=module.params['ip'],
+					reverse=fqdn)
+			module.exit_json(changed=True, msg="Reverse %s to %s succesfully set !" % (module.params['ip'], fqdn))
+		else:
+			module.exit_json(changed=False, msg="Reverse already set")
+	else:
+		if not module.params['domain']:
+			module.fail_json(changed=False, msg="Please give a domain to add your target")
+		if not module.params['ip']:
+			module.fail_json(changed=False, msg="Please give an IP to add your target")
+
 def changeDNS(ovhclient, module):
 	msg = ''
 	if module.params['name'] == 'refresh':
@@ -102,12 +160,14 @@ def main():
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['dedicated', 'dns', 'vrack'], required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status'], required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
 				boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
-				force_reboot = dict(required=False, default='no', choices=BOOLEANS)
+				force_reboot = dict(required=False, default='no', choices=BOOLEANS),
+				template = dict(required=False, default='None'),
+				hostname = dict(required=False, default='None')
 				)
 			)
 	client = ovh.Client()
@@ -115,8 +175,16 @@ def main():
 		changeDNS(client, module)
 	elif module.params['service'] == 'vrack':
 		changeVRACK(client, module)
-	elif module.params['service'] == 'dedicated':
+	elif module.params['service'] == 'boot':
 		changeBootDedicated(client, module)
+	elif module.params['service'] == 'reverse':
+		changeReverse(client, module)
+	elif module.params['service'] == 'monitoring':
+		changeMonitoring(client, module)
+	elif module.params['service'] == 'install':
+		launchInstall(client, module)
+	elif module.params['service'] == 'status':
+		getStatusInstall(client, module)
 
 from ansible.module_utils.basic import *
 if __name__ == '__main__':
