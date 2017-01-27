@@ -12,7 +12,6 @@ def getStatusInstall(ovhclient, module):
 		result = ovhclient.get('/dedicated/server/%s/task' % module.params['name'])
 		result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(result)))
 		module.exit_json(changed=False, msg="%s" % result['status'])
-		#return result['status']
 	else:
 		module.fail_json(changed=False, msg="Please give the service's name you want to know the install status")
 
@@ -51,7 +50,11 @@ def changeMonitoring(ovhclient, module):
 def changeReverse(ovhclient, module):
 	if module.params['domain'] and module.params['ip'] :
 		fqdn = module.params['name'] + '.' + module.params['domain'] + '.'
-		result = ovhclient.get('/ip/%s/reverse/%s' % (module.params['ip'], module.params['ip']))
+		result = {}
+		try:
+			result = ovhclient.get('/ip/%s/reverse/%s' % (module.params['ip'], module.params['ip']))
+		except ovh.exceptions.ResourceNotFoundError:
+			result['reverse'] = ''
 		if result['reverse'] != fqdn:
 			ovhclient.post('/ip/%s/reverse' % module.params['ip'],
 					ipReverse=module.params['ip'],
