@@ -1,8 +1,14 @@
 # An Ansible module to talk with OVH API.
 
+## Requirements
+python 2.7
+pip install ovh
+
+Works with Ansible 1.9.6 and 2.2.0
+
 ## Configuration
 
-In `files/ovh.conf`:
+In `/etc/ovh.conf`:
 
 ```
 [default]
