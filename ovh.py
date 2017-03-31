@@ -1,5 +1,130 @@
 #!/usr/bin/env python
 
+DOCUMENTATION = '''
+---
+module: ovh
+short_description: Manage OVH API for DNS, monitoring and Dedicated servers
+description:
+	- Add/Delete/Modify entries in OVH DNS
+	- Add reverse on OVH dedicated servers
+	- Install new dedicated servers from a template only
+	- Monitor installation status on dedicated servers
+	- Add/Remove OVH Monitoring on dedicated servers
+	- Add/Remove a dedicated server from a OVH vrack
+	- Restart a dedicate server on debian rescue or disk
+author: Synthesio - Francois BRUNHES @fanfan
+notes:
+	- In /etc/ovh.conf (on host that executes module), you should add your
+	  OVH API credentials like:
+	  [default]
+	  ; general configuration: default endpoint
+	  endpoint=ovh-eu
+
+	  [ovh-eu]
+	  ; configuration specific to 'ovh-eu' endpoint
+	  application_key=<YOUR APPLICATION KEY>
+	  application_secret=<YOUR APPLICATIOM SECRET>
+	  consumer_key=<YOUR CONSUMER KEY>
+requirements:
+	- ovh > 0.3.5
+options:
+	name:
+		required: true
+		description: The name of the service (dedicated, dns)
+	state:
+		required: false
+		default: present
+		choices: ['present', 'absent', 'modified']
+		description:
+			- Determines whether the dedicated/dns is to be created/modified
+			  or deleted
+	service:
+		required: true
+		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status']
+		description:
+			- Determines the service you want to use in the module
+			  boot, change the bootid and can reboot the dedicated server
+			  dns, manage A entries in your domain
+			  vrack, add or remove a dedicated from a vrack
+			  reverse, add/modify a reverse on a dedicated server
+			  monitoring, add/removing a dedicated server from OVH monitoring
+			  install, install from a template
+			  status, used after install to know install status
+	domain:
+		required: false
+		default: None
+		description:
+			- The domain used in dns and reverse services
+	ip:
+		required: false
+		default: None
+		description:
+			- The public IP used in reverse and dns services
+	vrack:
+		required: false
+		default: None
+		description:
+			- The vrack ID used in vrack service
+	boot:
+		required: false
+		default: harddisk
+		choices: ['harddisk','rescue']
+		description:
+			- Which way you want to boot your dedicated server
+	force_reboot:
+		required: false
+		default: no
+		choices: ['yes','no','true','false']
+		description:
+			- When you want to restart a dedicated server without changing his boot mode
+	template:
+		required: false
+		default: None
+		description:
+			- One of your personal template on OVH
+	hostname:
+		required: false
+		default: None
+		description:
+			- The hostname you want to replace in /etc/hostname when applying a template
+
+'''
+
+EXAMPLES = '''
+# Add a host into the vrack
+- name: Add server to vrack
+  ovh: service='vrack' vrack='VRACK ID' name='HOSTNAME'
+
+# Add a DNS entry for `internal.bar.foo.com`
+- name: Add server IP to DNS
+  ovh: service='dns' domain='foo.com' ip='1.2.3.4' name='internal.bar'
+
+- name: Refresh domain
+  ovh: service='dns' name='refresh' domain='{{ domain }}'
+
+# Change a server reverse
+- name: Change Reverse on server
+  ovh: service=reverse name='internal.bar' ip='1.2.3.4' domain='foo.com'
+
+# Install a server from a template
+- name: Install the dedicated server
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
+
+- name: Wait until installation is finished
+  local_action:
+    module: ovh
+    service: status
+    name: 'foo.ovh.eu'
+  register: result
+  until: result.msg.find("done") != -1
+  retries: 150
+  delay: 10
+
+# Enable / disable OVH monitoring
+- name: Remove ovh monitoring when necessary
+  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
+'''
+
 try:
 	import json
 except ImportError:
