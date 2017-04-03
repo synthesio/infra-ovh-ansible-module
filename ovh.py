@@ -374,6 +374,10 @@ def main():
 	elif module.params['service'] == 'status':
 		getStatusInstall(client, module)
 
+# For Ansible < 2.1
+#from ansible.module_utils.basic import *
+
+# For Ansible >= 2.1
 from module_utils.basic import AnsibleModule
 if __name__ == '__main__':
 	    main()

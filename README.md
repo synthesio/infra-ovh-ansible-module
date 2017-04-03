@@ -5,6 +5,14 @@ python 2.7
 pip install ovh
 
 Works with Ansible 1.9.6 and 2.2.0
+By default, the module works with Ansible 2.2. If you want to use it with Ansible 1.9, just change at the bottom of ovh.py :
+```
+# For Ansible < 2.1
+#from ansible.module_utils.basic import *
+
+# For Ansible >= 2.1
+from module_utils.basic import AnsibleModule
+```
 
 ## Configuration
 
