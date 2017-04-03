@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+ANSIBLE_METADATA = {
+    'metadata_version': '1.0',
+    'supported_by': 'community',
+    'status': ['preview']
+		}
+
 DOCUMENTATION = '''
 ---
 module: ovh
@@ -124,6 +130,8 @@ EXAMPLES = '''
 - name: Remove ovh monitoring when necessary
   ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
 '''
+
+RETURN = ''' # '''
 
 try:
 	import json
@@ -366,6 +374,6 @@ def main():
 	elif module.params['service'] == 'status':
 		getStatusInstall(client, module)
 
-from ansible.module_utils.basic import *
+from module_utils.basic import AnsibleModule
 if __name__ == '__main__':
 	    main()
