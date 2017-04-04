@@ -142,11 +142,14 @@ try:
 	import ovh
 	import ovh.exceptions
 	from ovh.exceptions import APIError
+	HAS_OVH = True
 except ImportError:
-	module.fail_json(changed=False, msg="OVH python module required to run this module")
+	HAS_OVH = False
 
 def getStatusInstall(ovhclient, module):
 	if module.params['name']:
+		if module.check_mode:
+			module.exit_json(changed=False, msg="done - (dry run mode)")
 		try:
 			result = ovhclient.get('/dedicated/server/%s/task' % module.params['name'])
 			result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(result)))
@@ -156,8 +159,17 @@ def getStatusInstall(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give the service's name you want to know the install status")
 
+
 def launchInstall(ovhclient, module):
 	if module.params['name'] and module.params['hostname'] and module.params['template']:
+		try:
+			result = ovhclient.get('/me/installationTemplate')
+			if module.params['template'] not in result:
+				module.fail_json(changed=False, msg="%s doesn't exist in personal templates" % module.params['template'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		if module.check_mode:
+			module.exit_json(changed=True, msg="Installation in progress on %s ! - (dry run mode)" % module.params['name'])
 		details = {"details":{"language":"en","customHostname":module.params['hostname']},"templateName":module.params['template']}
 		try:
 			ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
@@ -175,6 +187,8 @@ def launchInstall(ovhclient, module):
 
 def changeMonitoring(ovhclient, module):
 	if module.params['name'] and module.params['state']:
+		if module.check_mode:
+			module.exit_json(changed=True, msg="Monitoring %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
 		if module.params['state'] == 'present':
 			try:
 				ovhclient.put('/dedicated/server/%s' % module.params['name'],
@@ -190,7 +204,7 @@ def changeMonitoring(ovhclient, module):
 			except APIError as apiError:
 				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 		else:
-			module.fail_json(changed=False, msg="State modified does not match 'present' or 'absent'")
+			module.fail_json(changed=False, msg="State %s does not match 'present' or 'absent'" % module.params['state'])
 	else:
 		if not module.params['name']:
 			module.fail_json(changed=False, msg="Please give a name to change monitoring state")
@@ -206,6 +220,8 @@ def changeReverse(ovhclient, module):
 		except ovh.exceptions.ResourceNotFoundError:
 			result['reverse'] = ''
 		if result['reverse'] != fqdn:
+			if module.check_mode:
+				module.exit_json(changed=True, msg="Reverse %s to %s succesfully set ! - (dry run mode)" % (module.params['ip'], fqdn))
 			try:
 				ovhclient.post('/ip/%s/reverse' % module.params['ip'],
 						ipReverse=module.params['ip'],
@@ -224,19 +240,23 @@ def changeReverse(ovhclient, module):
 def changeDNS(ovhclient, module):
 	msg = ''
 	if module.params['name'] == 'refresh':
+		if module.check_mode:
+			module.exit_json(changed=True, msg="Domain %s succesfully refreshed ! - (dry run mode)" % module.params['domain'])
 		try:
 			ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 			module.exit_json(changed=True, msg="Domain %s succesfully refreshed !" % module.params['domain'])
 		except APIError as apiError:
 			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 	if module.params['domain'] and module.params['ip']:
-		if module.params['state'] == 'present':
-			try:
-				check = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
+		if module.check_mode:
+			module.exit_json(changed=True, msg="DNS succesfully %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
+		try:
+			check = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
 						fieldType=u'A',
 						subDomain=module.params['name'])
-			except APIError as apiError:
-				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		if module.params['state'] == 'present':
 			if not check:
 				try:
 					result = ovhclient.post('/domain/zone/%s/record' % module.params['domain'],
@@ -249,37 +269,23 @@ def changeDNS(ovhclient, module):
 			else:
 				module.exit_json(changed=False, msg="%s is already registered in domain %s" % (module.params['name'], module.params['domain']))
 		elif module.params['state'] == 'modified':
-			try:
-				resultget = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
-						fieldType=u'A',
-						subDomain=module.params['name'])
-			except APIError as apiError:
-				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-			if resultget:
+			if check:
 				try:
-					for ind in resultget:
+					for ind in check:
 						resultpost = ovhclient.put('/domain/zone/%s/record/%s' % (module.params['domain'], ind),
 									subDomain=module.params['name'],
 									target=module.params['ip'])
 						msg += '{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } ' % (ind, module.params['name'], module.params['ip'], module.params['domain'])
-					ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 					module.exit_json(changed=True, msg=msg)
 				except APIError as apiError:
 					module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 			else:
 				module.fail_json(changed=False, msg="The target %s doesn't exist in domain %s" % (module.params['name'], module.params['domain']))
 		elif module.params['state'] == 'absent':
-			try:
-				resultget = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
-						fieldType=u'A',
-						subDomain=module.params['name'])
-			except APIError as apiError:
-				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-			if resultget:
+			if check:
 				try:
-					for ind in resultget:
+					for ind in check:
 						resultpost = ovhclient.delete('/domain/zone/%s/record/%s' % (module.params['domain'], ind))
-					ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 					module.exit_json(changed=True, msg="Target %s succesfully deleted from domain %s" % (module.params['name'], module.params['domain']))
 				except APIError as apiError:
 					module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
@@ -293,6 +299,8 @@ def changeDNS(ovhclient, module):
 
 def changeVRACK(ovhclient, module):
 	if module.params['vrack']:
+		if module.check_mode:
+			module.exit_json(changed=True, msg="%s succesfully %s on %s - (dry run mode)" % (module.params['name'], module.params['state'],module.params['vrack']))
 		if module.params['state'] == 'present':
 			try:
 				check = ovhclient.get('/dedicated/server/%s/vrack' % (module.params['name']))
@@ -320,6 +328,8 @@ def changeVRACK(ovhclient, module):
 
 def changeBootDedicated(ovhclient, module):
 	bootid = { 'harddisk':1, 'rescue':1122 }
+	if module.check_mode:
+		module.exit_json(changed=True, msg="%s is now set to boot on %s. Reboot in progress... - (dry run mode)" % (module.params['name'], module.params['boot']))
 	try:
 		check = ovhclient.get('/dedicated/server/%s' % module.params['name'])
 	except APIError as apiError:
@@ -353,8 +363,11 @@ def main():
 				force_reboot = dict(required=False, default='no', choices=BOOLEANS),
 				template = dict(required=False, default='None'),
 				hostname = dict(required=False, default='None')
-				)
+				),
+			supports_check_mode=True
 			)
+	if not HAS_OVH:
+		module.fail_json(msg='OVH Api wrapper not installed')
 	try:
 		client = ovh.Client()
 	except APIError as apiError:
@@ -375,9 +388,11 @@ def main():
 		getStatusInstall(client, module)
 
 # For Ansible < 2.1
-#from ansible.module_utils.basic import *
+# Still works on Ansible 2.2.0
+from ansible.module_utils.basic import *
 
 # For Ansible >= 2.1
-from module_utils.basic import AnsibleModule
+# bug: doesn't work with ansible 2.2.0
+#from ansible.module_utils.basic import AnsibleModule
 if __name__ == '__main__':
 	    main()
