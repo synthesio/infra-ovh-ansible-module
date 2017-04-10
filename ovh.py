@@ -13,13 +13,14 @@ short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
 	- Add/Delete/Modify entries in OVH DNS
 	- Add reverse on OVH dedicated servers
-	- Install new dedicated servers from a template only
+	- Install new dedicated servers from a personal template only
+	- Create a personal OVH template from a file
 	- Monitor installation status on dedicated servers
 	- Add/Remove OVH Monitoring on dedicated servers
 	- Add/Remove a dedicated server from a OVH vrack
 	- Restart a dedicate server on debian rescue or disk
-	- List dedicated servers
-author: Synthesio - Francois BRUNHES @fanfan
+	- List dedicated servers, personal templates
+author: Synthesio - Francois BRUNHES aka fanfan (@synthesio)
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
 	  OVH API credentials like:
@@ -57,7 +58,7 @@ options:
 			  monitoring, add/removing a dedicated server from OVH monitoring
 			  install, install from a template
 			  status, used after install to know install status
-			  list, get a list of personal dedicated servers
+			  list, get a list of personal dedicated servers, personal templates
 	domain:
 		required: false
 		default: None
@@ -136,6 +137,11 @@ EXAMPLES = '''
 - name: Get list of servers
   ovh: service='list' name='dedicated'
   register: servers
+
+# List personal templates
+- name: Get list of personal templates
+  ovh: service='list' name='templates'
+  register: templates
 '''
 
 RETURN = ''' # '''
@@ -333,6 +339,10 @@ def changeVRACK(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
 
+def generateTemplate(ovhclient, module):
+	if module.params['template'] and :
+
+
 def changeBootDedicated(ovhclient, module):
 	bootid = { 'harddisk':1, 'rescue':1122 }
 	if module.check_mode:
@@ -371,12 +381,26 @@ def listDedicated(ovhclient, module):
 		module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 	module.exit_json(changedFalse=False, objects=customlist)
 
+def listTemplates(ovhclient, module):
+        customlist = []
+        try:
+                result = ovhclient.get('/me/installationTemplate')
+        except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+        try:
+                for i in result:
+			if 'tmp-mgr' not in i:
+                        	customlist.append(i)
+        except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+        module.exit_json(changedFalse=False, objects=customlist)
+
 def main():
 	module = AnsibleModule(
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list'], required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'create_template', required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
@@ -409,10 +433,14 @@ def main():
 		getStatusInstall(client, module)
 	elif module.params['service'] == 'list':
 		objects = ['dedicated', 'templates', 'ovhtemplates', 'vrack']
-		if module.params['name'] in objects:
+		if module.params['name'] == 'dedicated':
 			listDedicated(client, module)
+		elif module.params['name'] == 'templates':
+			listTemplates(client, module)
 		else:
 			module.exit_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
+	elif module.params['service'] == 'create_template':
+		generateTemplate(client, module)
 
 # For Ansible < 2.1
 # Still works on Ansible 2.2.0
