@@ -18,6 +18,7 @@ description:
 	- Add/Remove OVH Monitoring on dedicated servers
 	- Add/Remove a dedicated server from a OVH vrack
 	- Restart a dedicate server on debian rescue or disk
+	- List dedicated servers
 author: Synthesio - Francois BRUNHES @fanfan
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
@@ -46,7 +47,7 @@ options:
 			  or deleted
 	service:
 		required: true
-		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status']
+		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list']
 		description:
 			- Determines the service you want to use in the module
 			  boot, change the bootid and can reboot the dedicated server
@@ -56,6 +57,7 @@ options:
 			  monitoring, add/removing a dedicated server from OVH monitoring
 			  install, install from a template
 			  status, used after install to know install status
+			  list, get a list of personal dedicated servers
 	domain:
 		required: false
 		default: None
@@ -129,6 +131,11 @@ EXAMPLES = '''
 # Enable / disable OVH monitoring
 - name: Remove ovh monitoring when necessary
   ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
+
+# List personal dedicated servers
+- name: Get list of servers
+  ovh: service='list' name='dedicated'
+  register: servers
 '''
 
 RETURN = ''' # '''
@@ -350,12 +357,26 @@ def changeBootDedicated(ovhclient, module):
 				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 		module.exit_json(changed=False, msg="%s already configured for boot on %s" % (module.params['name'], module.params['boot']))
 
+def listDedicated(ovhclient, module):
+	customlist = []
+	try:
+		result = ovhclient.get('/dedicated/server')
+	except APIError as apiError:
+		module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	try:
+		for i in result:
+			test = ovhclient.get('/dedicated/server/%s' % i)
+			customlist.append('%s=%s' % (test['reverse'], i))
+	except APIError as apiError:
+		module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	module.exit_json(changedFalse=False, objects=customlist)
+
 def main():
 	module = AnsibleModule(
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status'], required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list'], required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
@@ -386,6 +407,12 @@ def main():
 		launchInstall(client, module)
 	elif module.params['service'] == 'status':
 		getStatusInstall(client, module)
+	elif module.params['service'] == 'list':
+		objects = ['dedicated', 'templates', 'ovhtemplates', 'vrack']
+		if module.params['name'] in objects:
+			listDedicated(client, module)
+		else:
+			module.exit_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
 
 # For Ansible < 2.1
 # Still works on Ansible 2.2.0
