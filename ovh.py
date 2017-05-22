@@ -20,7 +20,7 @@ description:
 	- Add/Remove a dedicated server from a OVH vrack
 	- Restart a dedicate server on debian rescue or disk
 	- List dedicated servers, personal templates
-author: Synthesio - Francois BRUNHES aka fanfan (@synthesio)
+author: Francois BRUNHES aka fanfan (@synthesio)
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
 	  OVH API credentials like:
@@ -339,10 +339,6 @@ def changeVRACK(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
 
-def generateTemplate(ovhclient, module):
-	if module.params['template'] and :
-
-
 def changeBootDedicated(ovhclient, module):
 	bootid = { 'harddisk':1, 'rescue':1122 }
 	if module.check_mode:
@@ -439,8 +435,6 @@ def main():
 			listTemplates(client, module)
 		else:
 			module.exit_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
-	elif module.params['service'] == 'create_template':
-		generateTemplate(client, module)
 
 # For Ansible < 2.1
 # Still works on Ansible 2.2.0
