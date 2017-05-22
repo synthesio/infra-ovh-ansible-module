@@ -13,13 +13,14 @@ short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
 	- Add/Delete/Modify entries in OVH DNS
 	- Add reverse on OVH dedicated servers
-	- Install new dedicated servers from a template only
+	- Install new dedicated servers from a personal template only
+	- Create a personal OVH template from a file
 	- Monitor installation status on dedicated servers
 	- Add/Remove OVH Monitoring on dedicated servers
 	- Add/Remove a dedicated server from a OVH vrack
 	- Restart a dedicate server on debian rescue or disk
 	- List dedicated servers, personal templates
-author: Synthesio - Francois BRUNHES @fanfan
+author: Francois BRUNHES aka fanfan (@synthesio)
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
 	  OVH API credentials like:
@@ -395,7 +396,7 @@ def main():
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list'], required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'create_template', required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
