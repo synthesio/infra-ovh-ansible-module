@@ -440,6 +440,10 @@ def main():
 # Still works on Ansible 2.2.0
 from ansible.module_utils.basic import *
 
+# For Ansible < 2.1
+# Still works on Ansible 2.2.0
+from ansible.module_utils.basic import *
+
 # For Ansible >= 2.1
 # bug: doesn't work with ansible 2.2.0
 #from ansible.module_utils.basic import AnsibleModule
