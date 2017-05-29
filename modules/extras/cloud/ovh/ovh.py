@@ -20,6 +20,7 @@ description:
 	- Add/Remove a dedicated server from a OVH vrack
 	- Restart a dedicate server on debian rescue or disk
 	- List dedicated servers, personal templates
+	- Create a template from a yml file inside an ansible role (see README)
 author: Francois BRUNHES aka fanfan (@synthesio)
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
@@ -48,7 +49,7 @@ options:
 			  or deleted
 	service:
 		required: true
-		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list']
+		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template']
 		description:
 			- Determines the service you want to use in the module
 			  boot, change the bootid and can reboot the dedicated server
@@ -59,6 +60,7 @@ options:
 			  install, install from a template
 			  status, used after install to know install status
 			  list, get a list of personal dedicated servers, personal templates
+			  template, create/delete an ovh template from a yaml file
 	domain:
 		required: false
 		default: None
@@ -142,9 +144,30 @@ EXAMPLES = '''
 - name: Get list of personal templates
   ovh: service='list' name='templates'
   register: templates
+
+# Create a new template and install it
+- name: check if template is already installed
+  ovh: service='list' name='templates'
+  register: templates
+
+# the template musts be located in files directory inside the role
+- name: Create template
+  ovh: service='template' name='custom' state='present'
+  run_once: yes
+  when: template not in templates.objects
+
+- name: Install the dedicated server
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
+  
+- name: Delete template
+  ovh: service='template' name='{{ template }}' state='absent'
+  run_once: yes
 '''
 
 RETURN = ''' # '''
+
+import ast
+import yaml
 
 try:
 	import json
@@ -158,6 +181,14 @@ try:
 	HAS_OVH = True
 except ImportError:
 	HAS_OVH = False
+
+# For Ansible < 2.1
+# Still works on Ansible 2.2.0
+from ansible.module_utils.basic import *
+
+# For Ansible >= 2.1
+# bug: doesn't work with ansible 2.2.0
+#from ansible.module_utils.basic import AnsibleModule
 
 def getStatusInstall(ovhclient, module):
 	if module.params['name']:
@@ -339,6 +370,60 @@ def changeVRACK(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
 
+def generateTemplate(ovhclient, module):
+	if module.check_mode:
+		module.exit_json(changed=True, msg="%s succesfully %s on ovh API - (dry run mode)" % (module.params['name'], module.params['state']))
+	src = module.params['name']
+	with open(src, 'r') as stream:
+		content = yaml.load(stream)
+	conf = {}
+	for i,j in content.iteritems():
+		conf[i] = j
+	if module.params['state'] == 'present':
+		try:
+			result = ovhclient.post('/me/installationTemplate', baseTemplateName = conf['baseTemplateName'], defaultLanguage = conf['defaultLanguage'], name = conf['templateName'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		Templates = { 'customization': {"customHostname":conf['customHostname'],"postInstallationScriptLink":conf['postInstallationScriptLink'],"postInstallationScriptReturn":conf['postInstallationScriptReturn'],"sshKeyName":conf['sshKeyName'],"useDistributionKernel":conf['useDistributionKernel']},'defaultLanguage':conf['defaultLanguage'],'templateName':conf['templateName'] }
+		try:
+			result = ovhclient.put('/me/installationTemplate/%s' % conf['templateName'], **Templates)
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		try:
+			result = ovhclient.post('/me/installationTemplate/%s/partitionScheme' % conf['templateName'], name=conf['partitionScheme'], priority=conf['partitionSchemePriority'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		partition = {}
+		for k in conf['partition']:
+			partition = ast.literal_eval(k)
+			try:
+				if 'raid' in partition.keys():
+					ovhclient.post('/me/installationTemplate/%s/partitionScheme/%s/partition' % (conf['templateName'], conf['partitionScheme']),
+							filesystem=partition['filesystem'],
+							mountpoint=partition['mountpoint'],
+							raid=partition['raid'],
+							size=partition['size'],
+							step=partition['step'],
+							type=partition['type'])
+				else:
+					ovhclient.post('/me/installationTemplate/%s/partitionScheme/%s/partition' % (conf['templateName'], conf['partitionScheme']),
+							filesystem=partition['filesystem'],
+							mountpoint=partition['mountpoint'],
+							size=partition['size'],
+							step=partition['step'],
+							type=partition['type'])
+			except APIError as apiError:
+				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		module.exit_json(changed=True, msg="Template %s succesfully created" % conf['templateName'])
+	elif module.params['state'] == 'absent':
+		try:
+			ovhclient.delete('/me/installationTemplate/%s' % conf['templateName'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		module.exit_json(changed=True, msg="Template %s succesfully deleted" % conf['templateName'])
+	else:
+		module.fail_json(changed=False, msg="State %s not supported. Only present/absent" % module.params['state'])
+
 def changeBootDedicated(ovhclient, module):
 	bootid = { 'harddisk':1, 'rescue':1122 }
 	if module.check_mode:
@@ -396,7 +481,7 @@ def main():
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'create_template', required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template'], required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
@@ -428,20 +513,14 @@ def main():
 	elif module.params['service'] == 'status':
 		getStatusInstall(client, module)
 	elif module.params['service'] == 'list':
-		objects = ['dedicated', 'templates', 'ovhtemplates', 'vrack']
 		if module.params['name'] == 'dedicated':
 			listDedicated(client, module)
 		elif module.params['name'] == 'templates':
 			listTemplates(client, module)
 		else:
-			module.exit_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
+			module.fail_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
+	elif module.params['service'] == 'template':
+		generateTemplate(client, module)
 
-# For Ansible < 2.1
-# Still works on Ansible 2.2.0
-from ansible.module_utils.basic import *
-
-# For Ansible >= 2.1
-# bug: doesn't work with ansible 2.2.0
-#from ansible.module_utils.basic import AnsibleModule
 if __name__ == '__main__':
 	    main()
