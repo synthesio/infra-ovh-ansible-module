@@ -1,0 +1,18 @@
+
+templateName: 'testscratch'
+baseTemplateName: 'debian8_64'
+customHostname: 'foo.bar.com'
+postInstallationScriptLink: ''
+postInstallationScriptReturn: ''
+sshKeyName: 'foobar'
+useDistributionKernel: true
+defaultLanguage: 'en'
+partitionScheme: 'custom'
+partitionSchemePriority: 1
+isSoftwareRaid: true
+# XXX: hardware raid not supported yet
+isHardwareRaid: false
+partition:
+  - "{'filesystem':'ext4','mountpoint':'/','raid':'1','size':'20000','step':'1','type':'primary'}"
+  - "{'filesystem':'swap','mountpoint':'swap','size':'512','step':'2','type':'primary'}"
+  - "{'filesystem':'xfs','mountpoint':'/srv','raid':'1','size':'0','step':'3','type':'primary'}"

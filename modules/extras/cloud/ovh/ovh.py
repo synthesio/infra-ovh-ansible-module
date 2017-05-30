@@ -13,12 +13,15 @@ short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
 	- Add/Delete/Modify entries in OVH DNS
 	- Add reverse on OVH dedicated servers
-	- Install new dedicated servers from a template only
+	- Install new dedicated servers from a personal template only
+	- Create a personal OVH template from a file
 	- Monitor installation status on dedicated servers
 	- Add/Remove OVH Monitoring on dedicated servers
 	- Add/Remove a dedicated server from a OVH vrack
 	- Restart a dedicate server on debian rescue or disk
-author: Synthesio - Francois BRUNHES @fanfan
+	- List dedicated servers, personal templates
+	- Create a template from a yml file inside an ansible role (see README)
+author: Francois BRUNHES aka fanfan (@synthesio)
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
 	  OVH API credentials like:
@@ -46,7 +49,7 @@ options:
 			  or deleted
 	service:
 		required: true
-		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status']
+		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template']
 		description:
 			- Determines the service you want to use in the module
 			  boot, change the bootid and can reboot the dedicated server
@@ -56,6 +59,8 @@ options:
 			  monitoring, add/removing a dedicated server from OVH monitoring
 			  install, install from a template
 			  status, used after install to know install status
+			  list, get a list of personal dedicated servers, personal templates
+			  template, create/delete an ovh template from a yaml file
 	domain:
 		required: false
 		default: None
@@ -129,9 +134,40 @@ EXAMPLES = '''
 # Enable / disable OVH monitoring
 - name: Remove ovh monitoring when necessary
   ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
+
+# List personal dedicated servers
+- name: Get list of servers
+  ovh: service='list' name='dedicated'
+  register: servers
+
+# List personal templates
+- name: Get list of personal templates
+  ovh: service='list' name='templates'
+  register: templates
+
+# Create a new template and install it
+- name: check if template is already installed
+  ovh: service='list' name='templates'
+  register: templates
+
+# the template musts be located in files directory inside the role
+- name: Create template
+  ovh: service='template' name='custom' state='present'
+  run_once: yes
+  when: template not in templates.objects
+
+- name: Install the dedicated server
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
+  
+- name: Delete template
+  ovh: service='template' name='{{ template }}' state='absent'
+  run_once: yes
 '''
 
 RETURN = ''' # '''
+
+import ast
+import yaml
 
 try:
 	import json
@@ -142,11 +178,22 @@ try:
 	import ovh
 	import ovh.exceptions
 	from ovh.exceptions import APIError
+	HAS_OVH = True
 except ImportError:
-	module.fail_json(changed=False, msg="OVH python module required to run this module")
+	HAS_OVH = False
+
+# For Ansible < 2.1
+# Still works on Ansible 2.2.0
+from ansible.module_utils.basic import *
+
+# For Ansible >= 2.1
+# bug: doesn't work with ansible 2.2.0
+#from ansible.module_utils.basic import AnsibleModule
 
 def getStatusInstall(ovhclient, module):
 	if module.params['name']:
+		if module.check_mode:
+			module.exit_json(changed=False, msg="done - (dry run mode)")
 		try:
 			result = ovhclient.get('/dedicated/server/%s/task' % module.params['name'])
 			result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(result)))
@@ -156,8 +203,17 @@ def getStatusInstall(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give the service's name you want to know the install status")
 
+
 def launchInstall(ovhclient, module):
 	if module.params['name'] and module.params['hostname'] and module.params['template']:
+		try:
+			result = ovhclient.get('/me/installationTemplate')
+			if module.params['template'] not in result:
+				module.fail_json(changed=False, msg="%s doesn't exist in personal templates" % module.params['template'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		if module.check_mode:
+			module.exit_json(changed=True, msg="Installation in progress on %s ! - (dry run mode)" % module.params['name'])
 		details = {"details":{"language":"en","customHostname":module.params['hostname']},"templateName":module.params['template']}
 		try:
 			ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
@@ -175,6 +231,8 @@ def launchInstall(ovhclient, module):
 
 def changeMonitoring(ovhclient, module):
 	if module.params['name'] and module.params['state']:
+		if module.check_mode:
+			module.exit_json(changed=True, msg="Monitoring %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
 		if module.params['state'] == 'present':
 			try:
 				ovhclient.put('/dedicated/server/%s' % module.params['name'],
@@ -190,7 +248,7 @@ def changeMonitoring(ovhclient, module):
 			except APIError as apiError:
 				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 		else:
-			module.fail_json(changed=False, msg="State modified does not match 'present' or 'absent'")
+			module.fail_json(changed=False, msg="State %s does not match 'present' or 'absent'" % module.params['state'])
 	else:
 		if not module.params['name']:
 			module.fail_json(changed=False, msg="Please give a name to change monitoring state")
@@ -206,6 +264,8 @@ def changeReverse(ovhclient, module):
 		except ovh.exceptions.ResourceNotFoundError:
 			result['reverse'] = ''
 		if result['reverse'] != fqdn:
+			if module.check_mode:
+				module.exit_json(changed=True, msg="Reverse %s to %s succesfully set ! - (dry run mode)" % (module.params['ip'], fqdn))
 			try:
 				ovhclient.post('/ip/%s/reverse' % module.params['ip'],
 						ipReverse=module.params['ip'],
@@ -224,19 +284,23 @@ def changeReverse(ovhclient, module):
 def changeDNS(ovhclient, module):
 	msg = ''
 	if module.params['name'] == 'refresh':
+		if module.check_mode:
+			module.exit_json(changed=True, msg="Domain %s succesfully refreshed ! - (dry run mode)" % module.params['domain'])
 		try:
 			ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 			module.exit_json(changed=True, msg="Domain %s succesfully refreshed !" % module.params['domain'])
 		except APIError as apiError:
 			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 	if module.params['domain'] and module.params['ip']:
-		if module.params['state'] == 'present':
-			try:
-				check = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
+		if module.check_mode:
+			module.exit_json(changed=True, msg="DNS succesfully %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
+		try:
+			check = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
 						fieldType=u'A',
 						subDomain=module.params['name'])
-			except APIError as apiError:
-				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		if module.params['state'] == 'present':
 			if not check:
 				try:
 					result = ovhclient.post('/domain/zone/%s/record' % module.params['domain'],
@@ -249,37 +313,23 @@ def changeDNS(ovhclient, module):
 			else:
 				module.exit_json(changed=False, msg="%s is already registered in domain %s" % (module.params['name'], module.params['domain']))
 		elif module.params['state'] == 'modified':
-			try:
-				resultget = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
-						fieldType=u'A',
-						subDomain=module.params['name'])
-			except APIError as apiError:
-				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-			if resultget:
+			if check:
 				try:
-					for ind in resultget:
+					for ind in check:
 						resultpost = ovhclient.put('/domain/zone/%s/record/%s' % (module.params['domain'], ind),
 									subDomain=module.params['name'],
 									target=module.params['ip'])
 						msg += '{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } ' % (ind, module.params['name'], module.params['ip'], module.params['domain'])
-					ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 					module.exit_json(changed=True, msg=msg)
 				except APIError as apiError:
 					module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 			else:
 				module.fail_json(changed=False, msg="The target %s doesn't exist in domain %s" % (module.params['name'], module.params['domain']))
 		elif module.params['state'] == 'absent':
-			try:
-				resultget = ovhclient.get('/domain/zone/%s/record' % module.params['domain'],
-						fieldType=u'A',
-						subDomain=module.params['name'])
-			except APIError as apiError:
-				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-			if resultget:
+			if check:
 				try:
-					for ind in resultget:
+					for ind in check:
 						resultpost = ovhclient.delete('/domain/zone/%s/record/%s' % (module.params['domain'], ind))
-					ovhclient.post('/domain/zone/%s/refresh' % module.params['domain'])
 					module.exit_json(changed=True, msg="Target %s succesfully deleted from domain %s" % (module.params['name'], module.params['domain']))
 				except APIError as apiError:
 					module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
@@ -293,6 +343,8 @@ def changeDNS(ovhclient, module):
 
 def changeVRACK(ovhclient, module):
 	if module.params['vrack']:
+		if module.check_mode:
+			module.exit_json(changed=True, msg="%s succesfully %s on %s - (dry run mode)" % (module.params['name'], module.params['state'],module.params['vrack']))
 		if module.params['state'] == 'present':
 			try:
 				check = ovhclient.get('/dedicated/server/%s/vrack' % (module.params['name']))
@@ -318,8 +370,64 @@ def changeVRACK(ovhclient, module):
 	else:
 		module.fail_json(changed=False, msg="Please give a vrack name to add/remove your server")
 
+def generateTemplate(ovhclient, module):
+	if module.check_mode:
+		module.exit_json(changed=True, msg="%s succesfully %s on ovh API - (dry run mode)" % (module.params['name'], module.params['state']))
+	src = module.params['name']
+	with open(src, 'r') as stream:
+		content = yaml.load(stream)
+	conf = {}
+	for i,j in content.iteritems():
+		conf[i] = j
+	if module.params['state'] == 'present':
+		try:
+			result = ovhclient.post('/me/installationTemplate', baseTemplateName = conf['baseTemplateName'], defaultLanguage = conf['defaultLanguage'], name = conf['templateName'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		Templates = { 'customization': {"customHostname":conf['customHostname'],"postInstallationScriptLink":conf['postInstallationScriptLink'],"postInstallationScriptReturn":conf['postInstallationScriptReturn'],"sshKeyName":conf['sshKeyName'],"useDistributionKernel":conf['useDistributionKernel']},'defaultLanguage':conf['defaultLanguage'],'templateName':conf['templateName'] }
+		try:
+			result = ovhclient.put('/me/installationTemplate/%s' % conf['templateName'], **Templates)
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		try:
+			result = ovhclient.post('/me/installationTemplate/%s/partitionScheme' % conf['templateName'], name=conf['partitionScheme'], priority=conf['partitionSchemePriority'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		partition = {}
+		for k in conf['partition']:
+			partition = ast.literal_eval(k)
+			try:
+				if 'raid' in partition.keys():
+					ovhclient.post('/me/installationTemplate/%s/partitionScheme/%s/partition' % (conf['templateName'], conf['partitionScheme']),
+							filesystem=partition['filesystem'],
+							mountpoint=partition['mountpoint'],
+							raid=partition['raid'],
+							size=partition['size'],
+							step=partition['step'],
+							type=partition['type'])
+				else:
+					ovhclient.post('/me/installationTemplate/%s/partitionScheme/%s/partition' % (conf['templateName'], conf['partitionScheme']),
+							filesystem=partition['filesystem'],
+							mountpoint=partition['mountpoint'],
+							size=partition['size'],
+							step=partition['step'],
+							type=partition['type'])
+			except APIError as apiError:
+				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		module.exit_json(changed=True, msg="Template %s succesfully created" % conf['templateName'])
+	elif module.params['state'] == 'absent':
+		try:
+			ovhclient.delete('/me/installationTemplate/%s' % conf['templateName'])
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		module.exit_json(changed=True, msg="Template %s succesfully deleted" % conf['templateName'])
+	else:
+		module.fail_json(changed=False, msg="State %s not supported. Only present/absent" % module.params['state'])
+
 def changeBootDedicated(ovhclient, module):
 	bootid = { 'harddisk':1, 'rescue':1122 }
+	if module.check_mode:
+		module.exit_json(changed=True, msg="%s is now set to boot on %s. Reboot in progress... - (dry run mode)" % (module.params['name'], module.params['boot']))
 	try:
 		check = ovhclient.get('/dedicated/server/%s' % module.params['name'])
 	except APIError as apiError:
@@ -340,12 +448,40 @@ def changeBootDedicated(ovhclient, module):
 				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 		module.exit_json(changed=False, msg="%s already configured for boot on %s" % (module.params['name'], module.params['boot']))
 
+def listDedicated(ovhclient, module):
+	customlist = []
+	try:
+		result = ovhclient.get('/dedicated/server')
+	except APIError as apiError:
+		module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	try:
+		for i in result:
+			test = ovhclient.get('/dedicated/server/%s' % i)
+			customlist.append('%s=%s' % (test['reverse'], i))
+	except APIError as apiError:
+		module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	module.exit_json(changedFalse=False, objects=customlist)
+
+def listTemplates(ovhclient, module):
+        customlist = []
+        try:
+                result = ovhclient.get('/me/installationTemplate')
+        except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+        try:
+                for i in result:
+			if 'tmp-mgr' not in i:
+                        	customlist.append(i)
+        except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+        module.exit_json(changedFalse=False, objects=customlist)
+
 def main():
 	module = AnsibleModule(
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status'], required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template'], required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
@@ -353,8 +489,11 @@ def main():
 				force_reboot = dict(required=False, default='no', choices=BOOLEANS),
 				template = dict(required=False, default='None'),
 				hostname = dict(required=False, default='None')
-				)
+				),
+			supports_check_mode=True
 			)
+	if not HAS_OVH:
+		module.fail_json(msg='OVH Api wrapper not installed')
 	try:
 		client = ovh.Client()
 	except APIError as apiError:
@@ -373,11 +512,15 @@ def main():
 		launchInstall(client, module)
 	elif module.params['service'] == 'status':
 		getStatusInstall(client, module)
+	elif module.params['service'] == 'list':
+		if module.params['name'] == 'dedicated':
+			listDedicated(client, module)
+		elif module.params['name'] == 'templates':
+			listTemplates(client, module)
+		else:
+			module.fail_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
+	elif module.params['service'] == 'template':
+		generateTemplate(client, module)
 
-# For Ansible < 2.1
-#from ansible.module_utils.basic import *
-
-# For Ansible >= 2.1
-from module_utils.basic import AnsibleModule
 if __name__ == '__main__':
 	    main()
