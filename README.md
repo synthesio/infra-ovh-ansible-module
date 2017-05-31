@@ -112,5 +112,9 @@ Here are a few examples of what you can do. Please read the module for everythin
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
   run_once: yes
+
+### Terminate the rent of an ovh dedicated server
+- name: terminate server
+  ovh: service=terminate name= "ns6666666.ip-42-422-42.eu"
 ```
 An example of yml template is in roles directory of this repository
