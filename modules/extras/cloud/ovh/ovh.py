@@ -21,6 +21,7 @@ description:
 	- Restart a dedicate server on debian rescue or disk
 	- List dedicated servers, personal templates
 	- Create a template from a yml file inside an ansible role (see README)
+	- Terminate a dedicated server (doesn't confirm termination, has to be done manually)
 author: Francois BRUNHES aka fanfan (@synthesio)
 notes:
 	- In /etc/ovh.conf (on host that executes module), you should add your
@@ -49,7 +50,7 @@ options:
 			  or deleted
 	service:
 		required: true
-		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template']
+		choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate']
 		description:
 			- Determines the service you want to use in the module
 			  boot, change the bootid and can reboot the dedicated server
@@ -61,6 +62,7 @@ options:
 			  status, used after install to know install status
 			  list, get a list of personal dedicated servers, personal templates
 			  template, create/delete an ovh template from a yaml file
+			  terminate, give back a dedicated server to OVH
 	domain:
 		required: false
 		default: None
@@ -254,6 +256,18 @@ def changeMonitoring(ovhclient, module):
 			module.fail_json(changed=False, msg="Please give a name to change monitoring state")
 		if not module.params['state']:
 			module.fail_json(changed=False, msg="Please give a state for your monitoring")
+
+def terminateServer(ovhclient, module):
+	if module.params['name']:
+		if module.check_mode:
+                	module.exit_json(changed=True, msg="Terminate %s is done, please confirm via the email sent - (dry run mode)" % module.params['name'])
+		try:
+			ovhclient.post('/dedicated/server/%s/terminate' % module.params['name'])
+			module.exit_json(changed=True, msg="Terminate %s is done, please confirm via the email sent" % module.params['name']))
+		except APIError as apiError:
+			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	else:
+		module.fail_json(changed=False, msg="Please give a dedicated name to terminate")
 
 def changeReverse(ovhclient, module):
 	if module.params['domain'] and module.params['ip'] :
@@ -481,7 +495,7 @@ def main():
 			argument_spec = dict(
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
-				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template'], required=True),
+				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate'], required=True),
 				domain = dict(required=False, default='None'),
 				ip    = dict(required=False, default='None'),
 				vrack = dict(required=False, default='None'),
@@ -521,6 +535,9 @@ def main():
 			module.fail_json(changed=False, msg="%s not supported for 'list' service" % module.params['name'])
 	elif module.params['service'] == 'template':
 		generateTemplate(client, module)
+	elif module.params['service'] == 'terminate':
+		terminateServer(client, module)
+	
 
 if __name__ == '__main__':
 	    main()
