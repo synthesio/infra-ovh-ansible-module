@@ -160,7 +160,7 @@ EXAMPLES = '''
 
 - name: Install the dedicated server
   ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
-  
+
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
   run_once: yes
@@ -356,6 +356,19 @@ def changeDNS(ovhclient, module):
             module.fail_json(changed=False, msg="Please give an IP to add your target")
 
 def changeVRACK(ovhclient, module):
+
+#XXX: This is what has to be done to fix this old way of asking for vrack activation
+# howto fix
+#
+# >>> client.get('/vrack/pn-519/allowedServices')
+# find 'dedicatedServerInterface' for matching 'dedicatedServer'
+# then
+# >>> client.post('/vrack/pn-519/dedicatedServerInterface', dedicatedServerInterface='39a20fb1-5569-4261-8f15-b7b8eb2c969c')
+# {u'function': u'addDedicatedServerInterfaceToVrack', u'status': u'init', u'lastUpdate': u'2017-06-01T16:06:59+02:00', u'orderId': None, u'serviceName': u'pn-519', u'targetDomain': u'39a20fb1-5569-4261-8f15-b7b8eb2c969c', u'todoDate': u'2017-06-01T16:06:59+02:00', u'id': 688352}
+# >>> client.get('/vrack/pn-519/task')
+# []
+
+
     if module.params['vrack']:
         if module.check_mode:
             module.exit_json(changed=True, msg="%s succesfully %s on %s - (dry run mode)" % (module.params['name'], module.params['state'],module.params['vrack']))
@@ -537,7 +550,7 @@ def main():
         generateTemplate(client, module)
     elif module.params['service'] == 'terminate':
         terminateServer(client, module)
-    
+
 
 if __name__ == '__main__':
         main()
