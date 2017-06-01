@@ -129,7 +129,7 @@ EXAMPLES = '''
     service: status
     name: 'foo.ovh.eu'
   register: result
-  until: result.msg.find("done") != -1
+  until: result.msg.find("Installation successful.") != -1
   retries: 150
   delay: 10
 
@@ -199,7 +199,7 @@ def getStatusInstall(ovhclient, module):
 		try:
 			result = ovhclient.get('/dedicated/server/%s/task' % module.params['name'])
 			result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(result)))
-			module.exit_json(changed=False, msg="%s" % result['status'])
+			module.exit_json(changed=False, msg="%s" % result['comment'])
 		except APIError as apiError:
 			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 	else:
@@ -263,7 +263,7 @@ def terminateServer(ovhclient, module):
                 	module.exit_json(changed=True, msg="Terminate %s is done, please confirm via the email sent - (dry run mode)" % module.params['name'])
 		try:
 			ovhclient.post('/dedicated/server/%s/terminate' % module.params['name'])
-			module.exit_json(changed=True, msg="Terminate %s is done, please confirm via the email sent" % module.params['name']))
+			module.exit_json(changed=True, msg="Terminate %s is done, please confirm via the email sent" % module.params['name'])
 		except APIError as apiError:
 			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 	else:

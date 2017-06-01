@@ -72,7 +72,7 @@ Here are a few examples of what you can do. Please read the module for everythin
     service: status
     name: 'foo.ovh.eu'
   register: result
-  until: result.msg.find("done") != -1
+  until: result.msg.find("Installation successful.") != -1
   retries: 150
   delay: 10
 ```
