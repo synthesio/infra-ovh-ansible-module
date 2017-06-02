@@ -356,42 +356,54 @@ def changeDNS(ovhclient, module):
             module.fail_json(changed=False, msg="Please give an IP to add your target")
 
 def changeVRACK(ovhclient, module):
-
-#XXX: This is what has to be done to fix this old way of asking for vrack activation
-# howto fix
-#
-# >>> client.get('/vrack/pn-519/allowedServices')
-# find 'dedicatedServerInterface' for matching 'dedicatedServer'
-# then
-# >>> client.post('/vrack/pn-519/dedicatedServerInterface', dedicatedServerInterface='39a20fb1-5569-4261-8f15-b7b8eb2c969c')
-# {u'function': u'addDedicatedServerInterfaceToVrack', u'status': u'init', u'lastUpdate': u'2017-06-01T16:06:59+02:00', u'orderId': None, u'serviceName': u'pn-519', u'targetDomain': u'39a20fb1-5569-4261-8f15-b7b8eb2c969c', u'todoDate': u'2017-06-01T16:06:59+02:00', u'id': 688352}
-# >>> client.get('/vrack/pn-519/task')
-# []
-
-
     if module.params['vrack']:
         if module.check_mode:
             module.exit_json(changed=True, msg="%s succesfully %s on %s - (dry run mode)" % (module.params['name'], module.params['state'],module.params['vrack']))
         if module.params['state'] == 'present':
             try:
-                check = ovhclient.get('/dedicated/server/%s/vrack' % (module.params['name']))
+                result = ovhclient.get('/vrack/%s/allowedServices' % module.params['vrack'])
             except APIError as apiError:
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-            if not check:
-                try:
-                    result = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
-                        dedicatedServer=module.params['name'])
-                    module.exit_json(changed=True, contents=result)
-                except APIError as apiError:
-                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-            else:
-                module.exit_json(changed=False, msg="%s is already registered in the vrack %s" % (module.params['name'], module.params['vrack']))
+# XXX: In a near future, OVH will add the possibility to add multiple interfaces to the same VRACK or another one
+# This code may break at this moment because each server will have a list of dedicatedServerInterface
+            for new_server in result['dedicatedServerInterface']:
+                if new_server['dedicatedServer'] == module.params['name']:
+                    try:
+                        result2 = ovhclient.post('/vrack/%s/dedicatedServerInterface' % module.params['vrack'],
+                            dedicatedServerInterface=new_server['dedicatedServerInterface'])
+                        module.exit_json(changed=True, contents=result2)
+		    except APIError as apiError:
+                        module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            for old_server in result['dedicatedServer']:
+                if old_server == module.params['name']:
+                    try:
+                        result2 = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
+                            dedicatedServer=module.params['name'])
+                        module.exit_json(changed=True, contents=result2)
+                    except APIError as apiError:
+                        module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            module.exit_json(changed=False, msg="No %s in allowed services of %s or %s is already registered" % (module.params['name'], module.params['vrack'], module.params['name']))
         elif module.params['state'] == 'absent':
             try:
-                result = ovhclient.delete('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
-                module.exit_json(changed=True, contents=result)
+		    result_new = ovhclient.get('/vrack/%s/dedicatedServerInterfaceDetails' % module.params['vrack'])
+		    result_old = ovhclient.get('/vrack/%s/dedicatedServer' % module.params['vrack'])
             except APIError as apiError:
-                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            for new_server in result_new:
+                if new_server['dedicatedServer'] == module.params['name']:
+                    try:
+                        result = ovhclient.delete('/vrack/%s/dedicatedServerInterface/%s' % (module.params['vrack'], new_server['dedicatedServerInterface']))
+                        module.exit_json(changed=True, contents=result)
+                    except APIError as apiError:
+                        module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            for old_server in result_old:
+                if old_server == module.params['name']:
+                    try:
+                        result = ovhclient.delete('/vrack/%s/dedicatedServer/%s' % (module.params['vrack'], module.params['name']))
+                        module.exit_json(changed=True, contents=result)
+                    except APIError as apiError:
+                        module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            module.exit_json(changed=False, msg="No %s in %s" % (module.params['name'], module.params['vrack']))
         else:
             module.exit_json(changed=False, msg="Vrack service only uses present/absent state")
     else:
@@ -497,8 +509,8 @@ def listTemplates(ovhclient, module):
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         try:
                 for i in result:
-            if 'tmp-mgr' not in i:
-                            customlist.append(i)
+                    if 'tmp-mgr' not in i:
+                        customlist.append(i)
         except APIError as apiError:
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         module.exit_json(changedFalse=False, objects=customlist)
