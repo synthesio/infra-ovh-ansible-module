@@ -197,9 +197,9 @@ def getStatusInstall(ovhclient, module):
         if module.check_mode:
             module.exit_json(changed=False, msg="done - (dry run mode)")
         try:
-            result = ovhclient.get('/dedicated/server/%s/task' % module.params['name'])
-            result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(result)))
-            module.exit_json(changed=False, msg="%s" % result['comment'])
+            tasklist = ovhclient.get('/dedicated/server/%s/task' % module.params['name'], function='reinstallServer')
+	    result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(tasklist)))
+	    module.exit_json(changed=False, msg="%i: %s" % (max(tasklist), result['comment']))
         except APIError as apiError:
             module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
     else:
