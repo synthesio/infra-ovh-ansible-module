@@ -35,9 +35,24 @@ notes:
 	  application_key=<YOUR APPLICATION KEY>
 	  application_secret=<YOUR APPLICATIOM SECRET>
 	  consumer_key=<YOUR CONSUMER KEY>
+
+	Or you can provide these values as module's attributes.
+
 requirements:
 	- ovh > 0.3.5
 options:
+	endpoint:
+		required: false
+		description: The API endpoint to use
+	application_key:
+		required: false
+		description: The application key to use to connect to the API
+	application_secret:
+		required: false
+		description: The application secret to use to connect to the API
+	consumer_key:
+		required: false
+		description: The consumer key to use to connect to the API
 	name:
 		required: true
 		description: The name of the service (dedicated, dns)
@@ -121,7 +136,7 @@ EXAMPLES = '''
 
 # Install a server from a template
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
+  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
 
 - name: Wait until installation is finished
   local_action:
@@ -160,7 +175,7 @@ EXAMPLES = '''
 
 - name: Install the dedicated server
   ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
-  
+
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
   run_once: yes
@@ -493,6 +508,10 @@ def listTemplates(ovhclient, module):
 def main():
 	module = AnsibleModule(
 			argument_spec = dict(
+				endpoint = dict(required=False, default='None'),
+				application_key = dict(required=False, default='None'),
+				application_secret = dict(required=False, default='None'),
+				consumer_key = dict(required=False, default='None'),
 				state = dict(default='present', choices=['present', 'absent', 'modified']),
 				name  = dict(required=True),
 				service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate'], required=True),
@@ -508,8 +527,13 @@ def main():
 			)
 	if not HAS_OVH:
 		module.fail_json(msg='OVH Api wrapper not installed')
+	credentials = ['endpoint', 'application_key', 'application_secret', 'consumer_key']
+	credentials_in_parameters = [cred in module.params for cred in credentials]
 	try:
-		client = ovh.Client()
+		if all(credentials_in_parameters):
+			client = ovh.Client(**{credential: module.params[credential] for credential in credentials})
+		else:
+			client = ovh.Client()
 	except APIError as apiError:
 		module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 	if module.params['service'] == 'dns':
@@ -537,7 +561,7 @@ def main():
 		generateTemplate(client, module)
 	elif module.params['service'] == 'terminate':
 		terminateServer(client, module)
-	
+
 
 if __name__ == '__main__':
 	    main()
