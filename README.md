@@ -107,7 +107,7 @@ Here are a few examples of what you can do. Please read the module for everythin
   when: template not in templates.objects
 
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom' ssh_key_name='My Key' use_distrib_kernel=True
   
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
