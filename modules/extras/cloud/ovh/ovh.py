@@ -184,13 +184,11 @@ try:
 except ImportError:
     HAS_OVH = False
 
-# For Ansible < 2.1
-# Still works on Ansible 2.2.0
-from ansible.module_utils.basic import *
-
-# For Ansible >= 2.1
-# bug: doesn't work with ansible 2.2.0
-#from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule
+try:
+    from ansible.module_utils.parsing.convert_bool import BOOLEANS
+except ImportError:
+    pass
 
 def getStatusInstall(ovhclient, module):
     if module.params['name']:
