@@ -31,6 +31,15 @@ application_secret=<YOUR APPLICATIOM SECRET>
 consumer_key=<YOUR CONSUMER KEY>
 ```
 
+Alternatively, you can provide credentials as module attributes:
+
+```
+- name: Add server to vrack
+  ovh: endpoint='ovh-eu' application_key='<YOUR APPLICATION KEY>' application_secret='<YOUR APPLICATIOM SECRET>' consumer_key='<YOUR CONSUMER KEY>' service='vrack' vrack='VRACK ID' name='HOSTNAME'
+```
+
+This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
+
 ## Usage
 
 Here are a few examples of what you can do. Please read the module for everything else, it most probably does it!
