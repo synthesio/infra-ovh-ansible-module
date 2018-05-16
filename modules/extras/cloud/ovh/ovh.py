@@ -135,7 +135,7 @@ EXAMPLES = '''
 
 # Install a server from a template
 - name: Install the dedicated server
-  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
+  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE' ssh_key_name='My Key' use_distrib_kernel=True
 
 - name: Wait until installation is finished
   local_action:
@@ -229,6 +229,17 @@ def launchInstall(ovhclient, module):
         if module.check_mode:
             module.exit_json(changed=True, msg="Installation in progress on %s ! - (dry run mode)" % module.params['name'])
         details = {"details":{"language":"en","customHostname":module.params['hostname']},"templateName":module.params['template']}
+        if module.params.get('ssh_key_name', None):
+            try:
+                result = ovhclient.get('/me/sshKey')
+                if module.params['ssh_key_name'] not in result:
+                    module.fail_json(changed=False, msg="%s doesn't exist in public SSH keys" % module.params['ssh_key_name'])
+                else:
+                    details['details']['sshKeyName'] = module.params['ssh_key_name']
+            except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	if module.params.get('use_distrib_kernel', False):
+		details['details']['useDistribKernel'] = module.params['use_distrib_kernel']
         try:
             ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
                     **details)
@@ -560,7 +571,9 @@ def main():
                 boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
                 force_reboot = dict(required=False, default='no', choices=BOOLEANS),
                 template = dict(required=False, default='None'),
-                hostname = dict(required=False, default='None')
+                hostname = dict(required=False, default='None'),
+                ssh_key_name = dict(required=False, default='None'),
+                use_distrib_kernel = dict(required=False, type='bool', default=False)
                 ),
             supports_check_mode=True
             )
