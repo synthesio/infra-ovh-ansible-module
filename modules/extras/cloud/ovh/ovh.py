@@ -100,6 +100,16 @@ options:
 		default: None
 		description:
 			- The hostname you want to replace in /etc/hostname when applying a template
+	ssh_key_name:
+		required: false
+		default: None
+		description:
+			- The public SSH key name to authorize acces for
+	use_distrib_kernel:
+		required: false
+		default: false
+		description:
+			- Whether to use the distribution kernel or not.
 
 '''
 
@@ -121,7 +131,7 @@ EXAMPLES = '''
 
 # Install a server from a template
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE' use_distrib_kernel=True
 
 - name: Wait until installation is finished
   local_action:
@@ -160,7 +170,7 @@ EXAMPLES = '''
 
 - name: Install the dedicated server
   ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
-  
+
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
   run_once: yes
@@ -217,6 +227,17 @@ def launchInstall(ovhclient, module):
 		if module.check_mode:
 			module.exit_json(changed=True, msg="Installation in progress on %s ! - (dry run mode)" % module.params['name'])
 		details = {"details":{"language":"en","customHostname":module.params['hostname']},"templateName":module.params['template']}
+		if module.params.get('ssh_key_name', None):
+			try:
+				result = ovhclient.get('/me/sshKey')
+				if module.params['ssh_key_name'] not in result:
+					module.fail_json(changed=False, msg="%s doesn't exist in public SSH keys" % module.params['ssh_key_name'])
+				else:
+					details['details']['sshKeyName'] = module.params['ssh_key_name']
+			except APIError as apiError:
+				module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+		if module.params.get('use_distrib_kernel', False):
+			details['details']['useDistribKernel'] = module.params['use_distrib_kernel']
 		try:
 			ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
 					**details)
@@ -502,7 +523,9 @@ def main():
 				boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
 				force_reboot = dict(required=False, default='no', choices=BOOLEANS),
 				template = dict(required=False, default='None'),
-				hostname = dict(required=False, default='None')
+				hostname = dict(required=False, default='None'),
+				ssh_key_name = dict(required=False, default='None'),
+				use_distrib_kernel = dict(required=False, type='bool', default=False)
 				),
 			supports_check_mode=True
 			)
@@ -537,7 +560,7 @@ def main():
 		generateTemplate(client, module)
 	elif module.params['service'] == 'terminate':
 		terminateServer(client, module)
-	
+
 
 if __name__ == '__main__':
 	    main()
