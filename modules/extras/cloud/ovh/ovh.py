@@ -13,7 +13,7 @@ short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
 	- Add/Delete/Modify entries in OVH DNS
 	- Add reverse on OVH dedicated servers
-	- Install new dedicated servers from a personal template only
+	- Install new dedicated servers from a template (both OVH an personal ones)
 	- Create a personal OVH template from a file
 	- Monitor installation status on dedicated servers
 	- Add/Remove OVH Monitoring on dedicated servers
@@ -160,7 +160,7 @@ EXAMPLES = '''
 
 - name: Install the dedicated server
   ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
-  
+
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
   run_once: yes
@@ -209,9 +209,10 @@ def getStatusInstall(ovhclient, module):
 def launchInstall(ovhclient, module):
 	if module.params['name'] and module.params['hostname'] and module.params['template']:
 		try:
-			result = ovhclient.get('/me/installationTemplate')
-			if module.params['template'] not in result:
-				module.fail_json(changed=False, msg="%s doesn't exist in personal templates" % module.params['template'])
+			compatible_templates = ovhclient.get('/dedicated/server/%s/install/compatibleTemplates' % module.params['name'])
+			compatible_templates = set([template for template_type in compatible_templates.keys() for template in compatible_templates[template_type]])
+			if module.params['template'] not in compatible_templates:
+				module.fail_json(changed=False, msg="%s doesn't exist in compatibles templates" % module.params['template'])
 		except APIError as apiError:
 			module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 		if module.check_mode:
@@ -537,7 +538,7 @@ def main():
 		generateTemplate(client, module)
 	elif module.params['service'] == 'terminate':
 		terminateServer(client, module)
-	
+
 
 if __name__ == '__main__':
 	    main()
