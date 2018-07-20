@@ -199,10 +199,6 @@ except ImportError:
     HAS_OVH = False
 
 from ansible.module_utils.basic import AnsibleModule
-try:
-    from ansible.module_utils.parsing.convert_bool import BOOLEANS
-except ImportError:
-    pass
 
 def getStatusInstall(ovhclient, module):
     if module.params['name']:
@@ -570,7 +566,7 @@ def main():
                 ip    = dict(required=False, default=None),
                 vrack = dict(required=False, default=None),
                 boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
-                force_reboot = dict(required=False, default='no', choices=BOOLEANS),
+                force_reboot = dict(required=False, type='bool', default=False),
                 template = dict(required=False, default=None),
                 hostname = dict(required=False, default=None),
                 ssh_key_name = dict(required=False, default=None),
