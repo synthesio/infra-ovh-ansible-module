@@ -359,28 +359,45 @@ def changeVRACK(ovhclient, module):
             module.exit_json(changed=True, msg="%s succesfully %s on %s - (dry run mode)" % (module.params['name'], module.params['state'],module.params['vrack']))
         if module.params['state'] == 'present':
             try:
-                result = ovhclient.get('/vrack/%s/allowedServices' % module.params['vrack'])
+                # There is no easy way to know if the server is on an old or new network generation.
+                # So we need to call this new route to ask for virtualNetworkInterface, and if the answer is empty, it's on a old generation.
+                # The /vrack/%s/allowedServices route used previously has availability and scaling problems.
+                result = ovhclient.get('/dedicated/server/%s/virtualNetworkInterface'  % module.params['name'], mode='vrack')
             except APIError as apiError:
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
 # XXX: In a near future, OVH will add the possibility to add multiple interfaces to the same VRACK or another one
 # This code may break at this moment because each server will have a list of dedicatedServerInterface
-            for new_server in result['dedicatedServerInterface']:
-                if new_server['dedicatedServer'] == module.params['name']:
-                    try:
-                        result2 = ovhclient.post('/vrack/%s/dedicatedServerInterface' % module.params['vrack'],
-                            dedicatedServerInterface=new_server['dedicatedServerInterface'])
-                        module.exit_json(changed=True, contents=result2)
-		    except APIError as apiError:
-                        module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-            for old_server in result['dedicatedServer']:
-                if old_server == module.params['name']:
-                    try:
-                        result2 = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
-                            dedicatedServer=module.params['name'])
-                        module.exit_json(changed=True, contents=result2)
-                    except APIError as apiError:
-                        module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-            module.exit_json(changed=False, msg="No %s in allowed services of %s or %s is already registered" % (module.params['name'], module.params['vrack'], module.params['name']))
+            # New generation
+            if len(result):
+                try:
+                    is_already_registered = ovhclient.get('/vrack/%s/dedicatedServerInterfaceDetails' % module.params['vrack'])
+                except APIError as apiError:
+                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+                for new_server in is_already_registered:
+                    if new_server['dedicatedServer'] == module.params['name']:
+                        module.exit_json(changed=False, msg="%s is already registered on %s" % (module.params['name'], module.params['vrack']))
+                try:
+                    serverInterface="".join(result)
+                    result2 = ovhclient.post('/vrack/%s/dedicatedServerInterface' % module.params['vrack'],
+                            dedicatedServerInterface=serverInterface)
+                    module.exit_json(changed=True, contents=result2)
+		except APIError as apiError:
+                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            # Old generation
+            else:
+                try:
+                    is_already_registered = ovhclient.get('/vrack/%s/dedicatedServer' % module.params['vrack'])
+                except APIError as apiError:
+                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+                for old_server in is_already_registered:
+                    if old_server == module.params['name']:
+                        module.exit_json(changed=False, msg="%s is already registered on %s" % (module.params['name'], module.params['vrack']))
+                try:
+                    result2 = ovhclient.post('/vrack/%s/dedicatedServer' % module.params['vrack'],
+                    dedicatedServer=module.params['name'])
+                    module.exit_json(changed=True, contents=result2)
+                except APIError as apiError:
+                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         elif module.params['state'] == 'absent':
             try:
 		    result_new = ovhclient.get('/vrack/%s/dedicatedServerInterfaceDetails' % module.params['vrack'])
