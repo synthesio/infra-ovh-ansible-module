@@ -559,21 +559,21 @@ def listTemplates(ovhclient, module):
 def main():
     module = AnsibleModule(
             argument_spec = dict(
-                endpoint = dict(required=False, default='None'),
-                application_key = dict(required=False, default='None'),
-                application_secret = dict(required=False, default='None'),
-                consumer_key = dict(required=False, default='None'),
+                endpoint = dict(required=False, default=None),
+                application_key = dict(required=False, default=None),
+                application_secret = dict(required=False, default=None),
+                consumer_key = dict(required=False, default=None),
                 state = dict(default='present', choices=['present', 'absent', 'modified']),
                 name  = dict(required=True),
                 service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate'], required=True),
-                domain = dict(required=False, default='None'),
-                ip    = dict(required=False, default='None'),
-                vrack = dict(required=False, default='None'),
+                domain = dict(required=False, default=None),
+                ip    = dict(required=False, default=None),
+                vrack = dict(required=False, default=None),
                 boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
                 force_reboot = dict(required=False, default='no', choices=BOOLEANS),
-                template = dict(required=False, default='None'),
-                hostname = dict(required=False, default='None'),
-                ssh_key_name = dict(required=False, default='None'),
+                template = dict(required=False, default=None),
+                hostname = dict(required=False, default=None),
+                ssh_key_name = dict(required=False, default=None),
                 use_distrib_kernel = dict(required=False, type='bool', default=False)
                 ),
             supports_check_mode=True
