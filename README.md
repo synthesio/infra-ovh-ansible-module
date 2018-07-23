@@ -4,16 +4,7 @@
 python 2.7
 pip install ovh
 
-Works with Ansible 1.9.6 and 2.2.0
-By default, the module works with Ansible 2.2. If you want to use it with Ansible 1.9, just change at the bottom of ovh.py :
-```
-# For Ansible < 2.1
-#from ansible.module_utils.basic import *
-
-# For Ansible >= 2.1
-# XXX: this line doesn't work with ansible 2.2.0, use the one below instead
-from module_utils.basic import AnsibleModule
-```
+Works with Ansible 2.5.0+
 
 ## Configuration
 
@@ -81,7 +72,7 @@ Here are a few examples of what you can do. Please read the module for everythin
     service: status
     name: 'foo.ovh.eu'
   register: result
-  until: result.msg.find("Installation successful.") != -1
+  until: result.msg.find("done") != -1
   retries: 150
   delay: 10
 ```

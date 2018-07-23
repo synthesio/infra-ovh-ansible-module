@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
+    'metadata_version': '1.1',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -143,7 +143,7 @@ EXAMPLES = '''
     service: status
     name: 'foo.ovh.eu'
   register: result
-  until: result.msg.find("Installation successful.") != -1
+  until: result.msg.find("done") != -1
   retries: 150
   delay: 10
 
