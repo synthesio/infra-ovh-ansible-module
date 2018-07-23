@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
+    'metadata_version': '1.1',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -13,7 +13,7 @@ short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
     - Add/Delete/Modify entries in OVH DNS
     - Add reverse on OVH dedicated servers
-    - Install new dedicated servers from a personal template only
+    - Install new dedicated servers from a template (both OVH an personal ones)
     - Create a personal OVH template from a file
     - Monitor installation status on dedicated servers
     - Add/Remove OVH Monitoring on dedicated servers
@@ -35,9 +35,23 @@ notes:
       application_key=<YOUR APPLICATION KEY>
       application_secret=<YOUR APPLICATIOM SECRET>
       consumer_key=<YOUR CONSUMER KEY>
+
+    Or you can provide these values as module's attributes.
 requirements:
     - ovh > 0.3.5
 options:
+    endpoint:
+	    required: false
+	    description: The API endpoint to use
+    application_key:
+	    required: false
+	    description: The application key to use to connect to the API
+    application_secret:
+	    required: false
+	    description: The application secret to use to connect to the API
+    consumer_key:
+	    required: false
+	    description: The consumer key to use to connect to the API
     name:
         required: true
         description: The name of the service (dedicated, dns)
@@ -121,7 +135,7 @@ EXAMPLES = '''
 
 # Install a server from a template
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
+  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE' ssh_key_name='My Key' use_distrib_kernel=True
 
 - name: Wait until installation is finished
   local_action:
@@ -129,7 +143,7 @@ EXAMPLES = '''
     service: status
     name: 'foo.ovh.eu'
   register: result
-  until: result.msg.find("Installation successful.") != -1
+  until: result.msg.find("done") != -1
   retries: 150
   delay: 10
 
@@ -185,10 +199,6 @@ except ImportError:
     HAS_OVH = False
 
 from ansible.module_utils.basic import AnsibleModule
-try:
-    from ansible.module_utils.parsing.convert_bool import BOOLEANS
-except ImportError:
-    pass
 
 def getStatusInstall(ovhclient, module):
     if module.params['name']:
@@ -207,14 +217,26 @@ def getStatusInstall(ovhclient, module):
 def launchInstall(ovhclient, module):
     if module.params['name'] and module.params['hostname'] and module.params['template']:
         try:
-            result = ovhclient.get('/me/installationTemplate')
-            if module.params['template'] not in result:
-                module.fail_json(changed=False, msg="%s doesn't exist in personal templates" % module.params['template'])
+            compatible_templates = ovhclient.get('/dedicated/server/%s/install/compatibleTemplates' % module.params['name'])
+            compatible_templates = set([template for template_type in compatible_templates.keys() for template in compatible_templates[template_type]])
+            if module.params['template'] not in compatible_templates:
+                module.fail_json(changed=False, msg="%s doesn't exist in compatibles templates" % module.params['template'])
         except APIError as apiError:
             module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         if module.check_mode:
             module.exit_json(changed=True, msg="Installation in progress on %s ! - (dry run mode)" % module.params['name'])
         details = {"details":{"language":"en","customHostname":module.params['hostname']},"templateName":module.params['template']}
+        if module.params.get('ssh_key_name', None):
+            try:
+                result = ovhclient.get('/me/sshKey')
+                if module.params['ssh_key_name'] not in result:
+                    module.fail_json(changed=False, msg="%s doesn't exist in public SSH keys" % module.params['ssh_key_name'])
+                else:
+                    details['details']['sshKeyName'] = module.params['ssh_key_name']
+            except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+	if module.params.get('use_distrib_kernel', False):
+		details['details']['useDistribKernel'] = module.params['use_distrib_kernel']
         try:
             ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
                     **details)
@@ -533,23 +555,34 @@ def listTemplates(ovhclient, module):
 def main():
     module = AnsibleModule(
             argument_spec = dict(
+                endpoint = dict(required=False, default=None),
+                application_key = dict(required=False, default=None),
+                application_secret = dict(required=False, default=None),
+                consumer_key = dict(required=False, default=None),
                 state = dict(default='present', choices=['present', 'absent', 'modified']),
                 name  = dict(required=True),
                 service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate'], required=True),
-                domain = dict(required=False, default='None'),
-                ip    = dict(required=False, default='None'),
-                vrack = dict(required=False, default='None'),
+                domain = dict(required=False, default=None),
+                ip    = dict(required=False, default=None),
+                vrack = dict(required=False, default=None),
                 boot = dict(default='harddisk', choices=['harddisk', 'rescue']),
-                force_reboot = dict(required=False, default='no', choices=BOOLEANS),
-                template = dict(required=False, default='None'),
-                hostname = dict(required=False, default='None')
+                force_reboot = dict(required=False, type='bool', default=False),
+                template = dict(required=False, default=None),
+                hostname = dict(required=False, default=None),
+                ssh_key_name = dict(required=False, default=None),
+                use_distrib_kernel = dict(required=False, type='bool', default=False)
                 ),
             supports_check_mode=True
             )
     if not HAS_OVH:
         module.fail_json(msg='OVH Api wrapper not installed')
+    credentials = ['endpoint', 'application_key', 'application_secret', 'consumer_key']
+    credentials_in_parameters = [cred in module.params for cred in credentials]
     try:
-        client = ovh.Client()
+        if all(credentials_in_parameters):
+            client = ovh.Client(**{credential: module.params[credential] for credential in credentials})
+        else:
+            client = ovh.Client()
     except APIError as apiError:
         module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
     if module.params['service'] == 'dns':
