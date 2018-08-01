@@ -10,7 +10,6 @@ defaultLanguage: 'en'
 partitionScheme: 'custom'
 partitionSchemePriority: 1
 isSoftwareRaid: true
-# XXX: hardware raid not supported yet
 isHardwareRaid: false
 partition:
   - "{'filesystem':'ext4','mountpoint':'/','raid':'1','size':'20000','step':'1','type':'primary'}"
