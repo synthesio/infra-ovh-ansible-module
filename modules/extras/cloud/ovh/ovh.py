@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.1',
+    'metadata_version': '2.0',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -13,8 +13,8 @@ short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
     - Add/Delete/Modify entries in OVH DNS
     - Add reverse on OVH dedicated servers
-    - Install new dedicated servers from a template (both OVH an personal ones)
-    - Create a personal OVH template from a file
+    - Install new dedicated servers from a template (both OVH and personal ones)
+    - Create a personal OVH template from a file (with h/w and s/w raid support)
     - Monitor installation status on dedicated servers
     - Add/Remove OVH Monitoring on dedicated servers
     - Add/Remove a dedicated server from a OVH vrack
@@ -22,7 +22,7 @@ description:
     - List dedicated servers, personal templates
     - Create a template from a yml file inside an ansible role (see README)
     - Terminate a dedicated server (doesn't confirm termination, has to be done manually)
-author: Francois BRUNHES aka fanfan (@synthesio)
+author: Francois BRUNHES and Synthesio SRE Team
 notes:
     - In /etc/ovh.conf (on host that executes module), you should add your
       OVH API credentials like:
