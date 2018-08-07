@@ -4,16 +4,7 @@
 python 2.7
 pip install ovh
 
-Works with Ansible 1.9.6 and 2.2.0
-By default, the module works with Ansible 2.2. If you want to use it with Ansible 1.9, just change at the bottom of ovh.py :
-```
-# For Ansible < 2.1
-#from ansible.module_utils.basic import *
-
-# For Ansible >= 2.1
-# XXX: this line doesn't work with ansible 2.2.0, use the one below instead
-from module_utils.basic import AnsibleModule
-```
+Works with Ansible 2.5.0+
 
 ## Configuration
 
@@ -30,6 +21,15 @@ application_key=<YOUR APPLICATION KEY>
 application_secret=<YOUR APPLICATIOM SECRET>
 consumer_key=<YOUR CONSUMER KEY>
 ```
+
+Alternatively, you can provide credentials as module attributes:
+
+```
+- name: Add server to vrack
+  ovh: endpoint='ovh-eu' application_key='<YOUR APPLICATION KEY>' application_secret='<YOUR APPLICATIOM SECRET>' consumer_key='<YOUR CONSUMER KEY>' service='vrack' vrack='VRACK ID' name='HOSTNAME'
+```
+
+This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
 
 ## Usage
 
@@ -72,7 +72,7 @@ Here are a few examples of what you can do. Please read the module for everythin
     service: status
     name: 'foo.ovh.eu'
   register: result
-  until: result.msg.find("Installation successful.") != -1
+  until: result.msg.find("done") != -1
   retries: 150
   delay: 10
 ```
@@ -107,7 +107,7 @@ Here are a few examples of what you can do. Please read the module for everythin
   when: template not in templates.objects
 
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom' ssh_key_name='My Key' use_distrib_kernel=True
   
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'

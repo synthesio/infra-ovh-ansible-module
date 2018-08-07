@@ -12,7 +12,10 @@ class ActionModule(ActionBase):
 		if task_vars is None:
 			task_vars = dict()
 		result = super(ActionModule, self).run(tmp, task_vars)
-
+		endpoint = self._task.args.get('endpoint', None)
+		application_key = self._task.args.get('application_key', None)
+		application_secret = self._task.args.get('application_secret', None)
+		consumer_key = self._task.args.get('consumer_key', None)
 		state = self._task.args.get('state', None)
 		name  = self._task.args.get('name', None)
 		domain = self._task.args.get('domain', None)
@@ -23,23 +26,32 @@ class ActionModule(ActionBase):
 		template = self._task.args.get('template', None)
 		hostname = self._task.args.get('hostname', None)
 		service = self._task.args.get('service', None)
-		
+
+		ssh_key_name = self._task.args.get('ssh_key_name', None)
+		use_distrib_kernel = self._task.args.get('use_distrib_kernel', False)
+
 		result['failed'] = True
-		new_src = name
-		
-		if name is None: 
+
+		new_src = template
+
+		credentials = ['endpoint', 'application_key', 'application_secret', 'consumer_key']
+		credentials_in_args = [cred in self._task.args for cred in credentials]
+
+		if name is None:
 			result['msg'] = "name is required"
 		elif service is None:
 			result['msg'] = "service is required"
+		elif any(credentials_in_args) and not all(credentials_in_args):
+			result['msg'] = "missing credentials. Either none or all the following (%s)" % ", ".join(credentials)
 		else:
 			del result['failed']
 		if result.get('failed'):
-            		return result
+                        return result
 
 		if service == 'template':
 			try:
-				new_src = self._find_needle('files', name)
-            		except AnsibleError as e:
+				new_src = self._find_needle('files', template)
+                        except AnsibleError as e:
 				result['failed'] = True
 				result['msg'] = to_text(e)
 				return result
@@ -51,7 +63,7 @@ class ActionModule(ActionBase):
                 new_module_args = self._task.args.copy()
                 new_module_args.update(
                     dict(
-                        name=new_src
+                        template=new_src
                     )
                 )
 		module_return = self._execute_module(module_name='ovh', module_args=new_module_args, task_vars=task_vars)
