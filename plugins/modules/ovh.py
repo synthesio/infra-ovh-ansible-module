@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+    
 
 ANSIBLE_METADATA = {
-    'metadata_version': '2.0',
+    'metadata_version': '2.1',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -114,7 +115,11 @@ options:
         default: None
         description:
             - The hostname you want to replace in /etc/hostname when applying a template
-
+    link_type:
+        required: false
+        default: private
+        description:
+            - The interface type you want to detect
 '''
 
 EXAMPLES = '''
@@ -571,6 +576,10 @@ def listTemplates(ovhclient, module):
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         module.exit_json(changedFalse=False, objects=customlist)
 
+def getMac(ovhclient, module):
+    result = ovhclient.get('/dedicated/server/%s/networkInterfaceController?linkType=%s' % (module.params['name'], module.params['link_type']))
+    module.exit_json(changed=False, msg=result)
+
 def main():
     module = AnsibleModule(
             argument_spec = dict(
@@ -580,7 +589,7 @@ def main():
                 consumer_key = dict(required=False, default=None),
                 state = dict(default='present', choices=['present', 'absent', 'modified']),
                 name  = dict(required=True),
-                service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate'], required=True),
+                service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate', 'getmac'], required=True),
                 domain = dict(required=False, default=None),
                 ip    = dict(required=False, default=None),
                 vrack = dict(required=False, default=None),
@@ -589,7 +598,8 @@ def main():
                 template = dict(required=False, default=None),
                 hostname = dict(required=False, default=None),
                 ssh_key_name = dict(required=False, default=None),
-                use_distrib_kernel = dict(required=False, type='bool', default=False)
+                use_distrib_kernel = dict(required=False, type='bool', default=False),
+                link_type =  dict(required=False, default='private', choices=['public', 'private'])
                 ),
             supports_check_mode=True
             )
@@ -629,7 +639,8 @@ def main():
         generateTemplate(client, module)
     elif module.params['service'] == 'terminate':
         terminateServer(client, module)
-
+    elif module.params['service'] == 'getmac':
+        getMac(client, module)
 
 if __name__ == '__main__':
         main()
