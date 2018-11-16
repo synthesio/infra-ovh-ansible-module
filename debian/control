@@ -1,0 +1,13 @@
+Source: python-ovh-ansible
+Section: unknown
+Priority: extra
+Maintainer: Synthesio SRE Team <sre@synthesio.com>
+Build-Depends: debhelper (>=9)
+Standards-Version: 3.9.8
+Homepage: https://gitlab.synthesio.com/infra/ovh-ansible-module 
+
+Package: python-ovh-ansible
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: An Ansible module to talk with OVH API. 
