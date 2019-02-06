@@ -114,6 +114,11 @@ options:
         default: None
         description:
             - The hostname you want to replace in /etc/hostname when applying a template
+    no_raid:
+        required: false
+        default: False
+        description:
+            - Do not configure raid
 
 '''
 
@@ -135,7 +140,7 @@ EXAMPLES = '''
 
 # Install a server from a template
 - name: Install the dedicated server
-  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE' ssh_key_name='My Key' use_distrib_kernel=True
+  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE' ssh_key_name='My Key' use_distrib_kernel=True no_raid=True
 
 - name: Wait until installation is finished
   local_action:
@@ -237,6 +242,8 @@ def launchInstall(ovhclient, module):
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         if module.params.get('use_distrib_kernel', False):
                 details['details']['useDistribKernel'] = module.params['use_distrib_kernel']
+        if module.params.get('no_raid', False):
+                details['details']['noRaid'] = module.params['no_raid']
         try:
             ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
                     **details)
@@ -589,7 +596,8 @@ def main():
                 template = dict(required=False, default=None),
                 hostname = dict(required=False, default=None),
                 ssh_key_name = dict(required=False, default=None),
-                use_distrib_kernel = dict(required=False, type='bool', default=False)
+                use_distrib_kernel = dict(required=False, type='bool', default=False),
+                no_raid = dict(required=False, type='bool', default=False)
                 ),
             supports_check_mode=True
             )

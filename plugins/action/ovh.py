@@ -29,6 +29,7 @@ class ActionModule(ActionBase):
 
 		ssh_key_name = self._task.args.get('ssh_key_name', None)
 		use_distrib_kernel = self._task.args.get('use_distrib_kernel', False)
+		no_raid = self._task.args.get('no_raid', False)
 
 		result['failed'] = True
 

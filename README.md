@@ -56,7 +56,7 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Change Reverse on server
-  ovh: service=reverse name='internal.bar' ip='1.2.3.4' domain='foo.com' 
+  ovh: service=reverse name='internal.bar' ip='1.2.3.4' domain='foo.com'
 ```
 
 
@@ -107,8 +107,8 @@ Here are a few examples of what you can do. Please read the module for everythin
   when: template not in templates.objects
 
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom' ssh_key_name='My Key' use_distrib_kernel=True
-  
+  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom' ssh_key_name='My Key' use_distrib_kernel=True no_raid=True
+
 - name: Delete template
   ovh: service='template' name='{{ template }}' state='absent'
   run_once: yes
