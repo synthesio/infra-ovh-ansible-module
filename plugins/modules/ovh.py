@@ -292,7 +292,7 @@ def changeMonitoring(ovhclient, module):
                         module.exit_json(changed=True, msg="Monitoring activated on %s after %i time(s)" % (module.params['name'],i))
                 else:
                         module.exit_json(changed=True, msg="Monitoring deactivated on %s after %i time(s)" % (module.params['name'], i))
-            time.sleep(module.params['sleep'])
+            time.sleep(float(module.params['sleep']))
         module.fail_json(changed=False, msg="Could not change monitoring flag")
     else:
         if not module.params['name']:
