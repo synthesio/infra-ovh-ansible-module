@@ -2,7 +2,7 @@
     
 
 ANSIBLE_METADATA = {
-    'metadata_version': '2.1',
+    'metadata_version': '2.2',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -120,6 +120,16 @@ options:
         default: private
         description:
             - The interface type you want to detect
+    max_retry:
+        required: false
+        default: 10
+        description:
+            - Number of tries for the operation to suceed. OVH api can be lazy.
+    sleep:
+        required: false
+        default: 10
+        description:
+            - seconds between to tries
 '''
 
 EXAMPLES = '''
@@ -154,7 +164,7 @@ EXAMPLES = '''
 
 # Enable / disable OVH monitoring
 - name: Remove ovh monitoring when necessary
-  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
+  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent' max_retry=10 sleep=10
 
 # List personal dedicated servers
 - name: Get list of servers
@@ -258,24 +268,32 @@ def launchInstall(ovhclient, module):
 
 def changeMonitoring(ovhclient, module):
     if module.params['name'] and module.params['state']:
-        if module.check_mode:
-            module.exit_json(changed=True, msg="Monitoring %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
         if module.params['state'] == 'present':
-            try:
-                ovhclient.put('/dedicated/server/%s' % module.params['name'],
-                        monitoring=True)
-                module.exit_json(changed=True, msg="Monitoring activated on %s" % module.params['name'])
-            except APIError as apiError:
-                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            shouldbe = True
         elif module.params['state'] == 'absent':
-            try:
-                ovhclient.put('/dedicated/server/%s' % module.params['name'],
-                        monitoring=False)
-                module.exit_json(changed=True, msg="Monitoring deactivated on %s" % module.params['name'])
-            except APIError as apiError:
-                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            shouldbe = False
         else:
             module.fail_json(changed=False, msg="State %s does not match 'present' or 'absent'" % module.params['state'])
+
+        if module.check_mode:
+            module.exit_json(changed=True, msg="Monitoring %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
+
+        for i in range (1, int(module.params['max_retry'])):
+            server_state = ovhclient.get('/dedicated/server/%s' % module.params['name'])
+
+            if server_state['monitoring'] != shouldbe:
+                try:
+                    ovhclient.put('/dedicated/server/%s' % module.params['name'],
+                        monitoring = shouldbe)
+                except APIError as apiError:
+                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            else:
+                if shouldbe:
+                        module.exit_json(changed=True, msg="Monitoring activated on %s after %i time(s)" % (module.params['name'],i))
+                else:
+                        module.exit_json(changed=True, msg="Monitoring deactivated on %s after %i time(s)" % (module.params['name'], i))
+            time.sleep(module.params['sleep'])
+        module.fail_json(changed=False, msg="Could not change monitoring flag")
     else:
         if not module.params['name']:
             module.fail_json(changed=False, msg="Please give a name to change monitoring state")
@@ -597,6 +615,8 @@ def main():
                 force_reboot = dict(required=False, type='bool', default=False),
                 template = dict(required=False, default=None),
                 hostname = dict(required=False, default=None),
+                max_retry = dict(required=False, default=10),
+                sleep = dict(required=False, default=10),
                 ssh_key_name = dict(required=False, default=None),
                 use_distrib_kernel = dict(required=False, type='bool', default=False),
                 link_type =  dict(required=False, default='private', choices=['public', 'private'])
