@@ -1,3 +1,9 @@
+python-ovh-ansible (2.3-1) unstable; urgency=medium
+
+  * Fetch more info when check server installation status
+
+ -- Guillaume Estassy - Sysadmin Coffee Team <gestassy@packages01.infra.production.int.synthesio.net>  Wed, 13 Feb 2019 15:12:21 +0000
+
 python-ovh-ansible (2.2-1) unstable; urgency=medium
 
   * Force retries on monitoring related methods
