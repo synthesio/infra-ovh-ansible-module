@@ -585,17 +585,16 @@ def changeBootDedicated(ovhclient, module):
         try:
             ovhclient.put('/dedicated/server/%s' % module.params['name'],
                     bootId=bootid[module.params['boot']])
-            ovhclient.post('/dedicated/server/%s/reboot' % module.params['name'])
-            module.exit_json(changed=True, msg="%s is now set to boot on %s. Reboot in progress..." % (module.params['name'], module.params['boot']))
         except APIError as apiError:
             module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-    else:
-        if module.params['force_reboot'] == 'yes' or module.params['force_reboot'] == 'true':
-            try:
-                ovhclient.post('/dedicated/server/%s/reboot' % module.params['name'])
-            except APIError as apiError:
-                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-        module.exit_json(changed=False, msg="%s already configured for boot on %s" % (module.params['name'], module.params['boot']))
+        module.exit_json(changed=True, msg="%s is now set to boot on %s." % (module.params['name'], module.params['boot']))
+    if module.params['force_reboot']:
+        try:
+            ovhclient.post('/dedicated/server/%s/reboot' % module.params['name'])
+        except APIError as apiError:
+            module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+        module.exit_json(changed=False, msg="%s is now rebooting on %s" % (module.params['name'], module.params['boot']))
+    module.exit_json(changed=False, msg="%s already configured for boot on %s" % (module.params['name'], module.params['boot']))
 
 def listDedicated(ovhclient, module):
     customlist = []
