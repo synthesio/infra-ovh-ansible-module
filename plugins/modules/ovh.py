@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ANSIBLE_METADATA = {
-    'metadata_version': '2.2',
+    'metadata_version': '2.3',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -24,7 +24,7 @@ description:
     - Terminate a dedicated server (doesn't confirm termination, has to be done manually)
 author: Francois BRUNHES and Synthesio SRE Team
 notes:
-    - In /etc/ovh.conf (on host that executes module), you should add your
+    - "In /etc/ovh.conf (on host that executes module), you should add your
       OVH API credentials like:
       [default]
       ; general configuration: default endpoint
@@ -36,9 +36,9 @@ notes:
       application_secret=<YOUR APPLICATIOM SECRET>
       consumer_key=<YOUR CONSUMER KEY>
 
-    Or you can provide these values as module's attributes.
+    Or you can provide these values as module's attributes."
 requirements:
-    - ovh > 0.3.5
+    - ovh >= 0.4.8
 options:
     endpoint:
             required: false
@@ -132,6 +132,7 @@ options:
 '''
 
 EXAMPLES = '''
+
 # Add a host into the vrack
 - name: Add server to vrack
   ovh: service='vrack' vrack='VRACK ID' name='HOSTNAME'
