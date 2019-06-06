@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ANSIBLE_METADATA = {
-    'metadata_version': '2.0',
+    'metadata_version': '2.3',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -24,7 +24,7 @@ description:
     - Terminate a dedicated server (doesn't confirm termination, has to be done manually)
 author: Francois BRUNHES and Synthesio SRE Team
 notes:
-    - In /etc/ovh.conf (on host that executes module), you should add your
+    - "In /etc/ovh.conf (on host that executes module), you should add your
       OVH API credentials like:
       [default]
       ; general configuration: default endpoint
@@ -36,9 +36,9 @@ notes:
       application_secret=<YOUR APPLICATIOM SECRET>
       consumer_key=<YOUR CONSUMER KEY>
 
-    Or you can provide these values as module's attributes.
+    Or you can provide these values as module's attributes."
 requirements:
-    - ovh > 0.3.5
+    - ovh >= 0.4.8
 options:
     endpoint:
             required: false
@@ -114,10 +114,25 @@ options:
         default: None
         description:
             - The hostname you want to replace in /etc/hostname when applying a template
-
+    link_type:
+        required: false
+        default: private
+        description:
+            - The interface type you want to detect
+    max_retry:
+        required: false
+        default: 10
+        description:
+            - Number of tries for the operation to suceed. OVH api can be lazy.
+    sleep:
+        required: false
+        default: 10
+        description:
+            - seconds between to tries
 '''
 
 EXAMPLES = '''
+
 # Add a host into the vrack
 - name: Add server to vrack
   ovh: service='vrack' vrack='VRACK ID' name='HOSTNAME'
@@ -140,16 +155,16 @@ EXAMPLES = '''
 - name: Wait until installation is finished
   local_action:
     module: ovh
-    service: status
-    name: 'foo.ovh.eu'
+    args:
+      service: status
+      name: 'foo.ovh.eu'
+      max_retry: 150
+      sleep: 10
   register: result
-  until: result.msg.find("done") != -1
-  retries: 150
-  delay: 10
 
 # Enable / disable OVH monitoring
 - name: Remove ovh monitoring when necessary
-  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
+  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent' max_retry=10 sleep=10
 
 # List personal dedicated servers
 - name: Get list of servers
@@ -184,6 +199,7 @@ RETURN = ''' # '''
 
 import ast
 import yaml
+import time
 
 try:
     import json
@@ -199,19 +215,40 @@ except ImportError:
     HAS_OVH = False
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible.utils.display import Display
+from ansible import constants as C
+
+display = Display()
 
 def getStatusInstall(ovhclient, module):
     if module.params['name']:
         if module.check_mode:
             module.exit_json(changed=False, msg="done - (dry run mode)")
-        try:
-            tasklist = ovhclient.get('/dedicated/server/%s/task' % module.params['name'], function='reinstallServer')
-            result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(tasklist)))
-            module.exit_json(changed=False, msg="%i: %s" % (max(tasklist), result['status']))
-        except APIError as apiError:
-            module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+        for i in range (1, int(module.params['max_retry'])):
+            # Messages cannot be displayed in real time (yet): https://github.com/ansible/proposals/issues/92
+            display.display("%i out of %i" % (i, int(module.params['max_retry'])), C.COLOR_VERBOSE)
+            try:
+                tasklist = ovhclient.get('/dedicated/server/%s/task' % module.params['name'], function='reinstallServer')
+                result = ovhclient.get('/dedicated/server/%s/task/%s' % (module.params['name'], max(tasklist)))
+            except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            message = ""
+            # Get more details in installation progression
+            if "done" not in result['status']:
+                progress_status = ovhclient.get('/dedicated/server/%s/install/status' % module.params['name'])
+                if 'message' in progress_status and progress_status['message'] == 'Server is not being installed or reinstalled at the moment':
+                    message = progress_status['message']
+                else:
+                    for progress in progress_status['progress']:
+                        if progress["status"] == "doing":
+                             message = progress['comment']
+                display.display("%s: %s" % (result['status'], message), C.COLOR_VERBOSE)
+                time.sleep(float(module.params['sleep']))
+            else:
+                module.exit_json(changed=False, msg="%s: %s" % (result['status'], message))
+        module.fail_json(changed=False, msg="Max wait time reached, about %i x %i seconds" % (i, int(module.params['max_retry'])))
     else:
-        module.fail_json(changed=False, msg="Please give the service's name you want to know the install status")
+        module.fail_json(changed=False, msg="Please provide 'ns' server name from wich installation status will be check")
 
 
 def launchInstall(ovhclient, module):
@@ -240,6 +277,7 @@ def launchInstall(ovhclient, module):
         try:
             ovhclient.post('/dedicated/server/%s/install/start' % module.params['name'],
                     **details)
+		#TODO : check if details are still properly formed, even for a HW Raid config. For instance:  {"details":{"language":"en","customHostname":"test01.test.synthesio.net","installSqlServer":false,"postInstallationScriptLink":null,"postInstallationScriptReturn":null,"sshKeyName":"deploy","useDistribKernel":true,"useSpla":false,"softRaidDevices":null,"noRaid":false,"diskGroupId":null,"resetHwRaid":false},"templateName":"test"}
             module.exit_json(changed=True, msg="Installation in progress on %s !" % module.params['name'])
         except APIError as apiError:
             module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
@@ -253,24 +291,32 @@ def launchInstall(ovhclient, module):
 
 def changeMonitoring(ovhclient, module):
     if module.params['name'] and module.params['state']:
-        if module.check_mode:
-            module.exit_json(changed=True, msg="Monitoring %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
         if module.params['state'] == 'present':
-            try:
-                ovhclient.put('/dedicated/server/%s' % module.params['name'],
-                        monitoring=True)
-                module.exit_json(changed=True, msg="Monitoring activated on %s" % module.params['name'])
-            except APIError as apiError:
-                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            shouldbe = True
         elif module.params['state'] == 'absent':
-            try:
-                ovhclient.put('/dedicated/server/%s' % module.params['name'],
-                        monitoring=False)
-                module.exit_json(changed=True, msg="Monitoring deactivated on %s" % module.params['name'])
-            except APIError as apiError:
-                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            shouldbe = False
         else:
             module.fail_json(changed=False, msg="State %s does not match 'present' or 'absent'" % module.params['state'])
+
+        if module.check_mode:
+            module.exit_json(changed=True, msg="Monitoring %s on %s - (dry run mode)" % (module.params['state'], module.params['name']))
+
+        for i in range (1, int(module.params['max_retry'])):
+            server_state = ovhclient.get('/dedicated/server/%s' % module.params['name'])
+
+            if server_state['monitoring'] != shouldbe:
+                try:
+                    ovhclient.put('/dedicated/server/%s' % module.params['name'],
+                        monitoring = shouldbe)
+                except APIError as apiError:
+                    module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
+            else:
+                if shouldbe:
+                        module.exit_json(changed=True, msg="Monitoring activated on %s after %i time(s)" % (module.params['name'],i))
+                else:
+                        module.exit_json(changed=True, msg="Monitoring deactivated on %s after %i time(s)" % (module.params['name'], i))
+            time.sleep(float(module.params['sleep']))
+        module.fail_json(changed=False, msg="Could not change monitoring flag")
     else:
         if not module.params['name']:
             module.fail_json(changed=False, msg="Please give a name to change monitoring state")
@@ -476,6 +522,10 @@ def generateTemplate(ovhclient, module):
                     # XXX: Only works with a server who has one controller. All the disks in this controller are taken to form one raid
                     # In the future, some of our servers could have more than one controller, so we will have to adapt this code
                     disks = result['controllers'][0]['disks'][0]['names']
+                    #if 'raid 1' in conf['raidMode']:
+                        #TODO : create a list of disks like this: {"disks":["[c0:d0,c0:d1]","[c0:d2,c0:d3]","[c0:d4,c0:d5]","[c0:d6,c0:d7]","[c0:d8,c0:d9]","[c0:d10,c0:d11]"],"mode":"raid10","name":"managerHardRaid","step":1}
+                    #else:
+			#TODO : for raid 0, it's assumed that a simple list of disks would be sufficient
                     try:
                         result = ovhclient.post('/me/installationTemplate/%s/partitionScheme/%s/hardwareRaid' % (conf['templateName'], conf['partitionScheme']),
                             disks=disks,
@@ -507,7 +557,11 @@ def generateTemplate(ovhclient, module):
                                 type=partition['type'])
                 except APIError as apiError:
                     module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
-            module.exit_json(changed=True, msg="Template %s succesfully created" % conf['templateName'])
+            try:
+                ovhclient.post('/me/installationTemplate/%s/checkIntegrity' % conf['templateName'])
+            except APIError as apiError:
+                module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError)) 
+	    module.exit_json(changed=True, msg="Template %s succesfully created" % conf['templateName'])
         elif module.params['state'] == 'absent':
             try:
                 ovhclient.delete('/me/installationTemplate/%s' % conf['templateName'])
@@ -571,6 +625,10 @@ def listTemplates(ovhclient, module):
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError))
         module.exit_json(changedFalse=False, objects=customlist)
 
+def getMac(ovhclient, module):
+    result = ovhclient.get('/dedicated/server/%s/networkInterfaceController?linkType=%s' % (module.params['name'], module.params['link_type']))
+    module.exit_json(changed=False, msg=result)
+
 def main():
     module = AnsibleModule(
             argument_spec = dict(
@@ -580,7 +638,7 @@ def main():
                 consumer_key = dict(required=False, default=None),
                 state = dict(default='present', choices=['present', 'absent', 'modified']),
                 name  = dict(required=True),
-                service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate'], required=True),
+                service = dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate', 'getmac'], required=True),
                 domain = dict(required=False, default=None),
                 ip    = dict(required=False, default=None),
                 vrack = dict(required=False, default=None),
@@ -588,8 +646,11 @@ def main():
                 force_reboot = dict(required=False, type='bool', default=False),
                 template = dict(required=False, default=None),
                 hostname = dict(required=False, default=None),
+                max_retry = dict(required=False, default=10),
+                sleep = dict(required=False, default=10),
                 ssh_key_name = dict(required=False, default=None),
-                use_distrib_kernel = dict(required=False, type='bool', default=False)
+                use_distrib_kernel = dict(required=False, type='bool', default=False),
+                link_type =  dict(required=False, default='private', choices=['public', 'private'])
                 ),
             supports_check_mode=True
             )
@@ -629,7 +690,8 @@ def main():
         generateTemplate(client, module)
     elif module.params['service'] == 'terminate':
         terminateServer(client, module)
-
+    elif module.params['service'] == 'getmac':
+        getMac(client, module)
 
 if __name__ == '__main__':
         main()

@@ -26,6 +26,9 @@ class ActionModule(ActionBase):
 		template = self._task.args.get('template', None)
 		hostname = self._task.args.get('hostname', None)
 		service = self._task.args.get('service', None)
+		link_type = self._task.args.get('link_type', None)
+                max_retry = self._task.args.get('max_retry', 10)
+                sleep = self._task.args.get('sleep', 10)
 
 		ssh_key_name = self._task.args.get('ssh_key_name', None)
 		use_distrib_kernel = self._task.args.get('use_distrib_kernel', False)

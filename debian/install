@@ -1,0 +1,2 @@
+plugins/modules/ovh.py usr/share/ansible/plugins/modules
+plugins/action/ovh.py usr/share/ansible/plugins/action

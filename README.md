@@ -1,12 +1,19 @@
 # An Ansible module to talk with OVH API.
 
 ## Requirements
-python 2.7
-pip install ovh
 
-Works with Ansible 2.5.0+
+- python 2.7
+- python-ovh: https://github.com/ovh/python-ovh
+- Only tested with Ansible 2.7.0+
 
 ## Configuration
+
+In your `ansible.cfg` :
+
+```
+action_plugin_path=path/to/ovh/plugins/action
+module_path=path/to/ovh/plugins/modules
+```
 
 In `/etc/ovh.conf`:
 
@@ -26,7 +33,14 @@ Alternatively, you can provide credentials as module attributes:
 
 ```
 - name: Add server to vrack
-  ovh: endpoint='ovh-eu' application_key='<YOUR APPLICATION KEY>' application_secret='<YOUR APPLICATIOM SECRET>' consumer_key='<YOUR CONSUMER KEY>' service='vrack' vrack='VRACK ID' name='HOSTNAME'
+  ovh:
+    endpoint: "ovh-eu"
+    application_key: "<YOUR APPLICATION KEY>"
+    application_secret: "<YOUR APPLICATIOM SECRET>"
+    consumer_key: "<YOUR CONSUMER KEY>"
+    service: vrack
+    vrack: "VRACK ID"
+    name: "HOSTNAME"
 ```
 
 This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
@@ -39,24 +53,38 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Add server to vrack
-  ovh: service='vrack' vrack='VRACK ID' name='HOSTNAME'
+  ovh:
+    service: vrack
+    vrack: "VRACK ID"
+    name: "HOSTNAME"
 ```
 
-### Add a DNS entry for `internal.bar.foo.com`
+### Add a DNS entry for `internal.bar.example.com`
 
 ```
 - name: Add server IP to DNS
-  ovh: service='dns' domain='foo.com' ip='1.2.3.4' name='internal.bar'
+  ovh:
+    service: dns
+    domain: "example.com"
+    ip: "192.0.21"
+    name: "internal.bar"
 
 - name: Refresh domain
-  ovh: service='dns' name='refresh' domain='{{ domain }}'
+  ovh:
+    service: dns
+    name: refresh
+    domain: "example.com"
 ```
 
 ### Change a server reverse
 
 ```
 - name: Change Reverse on server
-  ovh: service=reverse name='internal.bar' ip='1.2.3.4' domain='foo.com' 
+  ovh:
+    service: reverse
+    name: "internal.bar"
+    ip: "192.0.2.1"
+    domain: "example.com"
 ```
 
 
@@ -64,57 +92,85 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE'
+  ovh:
+    service: install
+    name: "ovhname.ovh.eu"
+    hostname: "internal.bar.example.com"
+    template: "SOME TEMPLATE"
 
 - name: Wait until installation is finished
   local_action:
     module: ovh
-    service: status
-    name: 'foo.ovh.eu'
-  register: result
-  until: result.msg.find("done") != -1
-  retries: 150
-  delay: 10
+    args:
+      service: status
+      name: "ovhname.ovh.eu"
+      max_retry: 150
+      sleep: 10
+
 ```
 
 ### Enable / disable OVH monitoring
 
 ```
 - name: Remove ovh monitoring when necessary
-  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent'
+  ovh:
+    service: monitoring
+    name: "ovhname.ovh.eu"
+    state: "present / absent"
 ```
 
 ### List dedicated servers or personal templates
 ```
 - name: Get list of servers
-  ovh: service='list' name='dedicated'
+  ovh:
+    service: list
+    name: dedicated
   register: servers
 
 - name: Get list of personal templates
-  ovh: service='list' name='templates'
+  ovh:
+    service: list
+    name: templates
   register: templates
 ```
 
 ### Create a new template and install it
 ```
 - name: check if template is already installed
-  ovh: service='list' name='templates'
+  ovh:
+    service: list
+    name: templates
   register: templates
 
 - name: Create template
-  ovh: service='template' name='custom' state='present'
+  ovh:
+    service: template
+    name: custom_template
+    state: "present"
   run_once: yes
   when: template not in templates.objects
 
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom' ssh_key_name='My Key' use_distrib_kernel=True
-  
+  ovh:
+    service: install
+    name: ovhname.ovh.eu
+    hostname: "internal.bar.example.com"
+    template: "custom_template"
+    ssh_key_name="My Key"
+    use_distrib_kernel=True
+
 - name: Delete template
-  ovh: service='template' name='{{ template }}' state='absent'
+  ovh:
+    service: template
+    name: "custom_template"
+    state: "absent"
   run_once: yes
 
 ### Terminate the rent of an ovh dedicated server
 - name: terminate server
-  ovh: service=terminate name= "ns6666666.ip-42-422-42.eu"
+  ovh:
+    service: terminate
+    name: "ns6666666.ip-42-422-42.eu"
 ```
+
 An example of yml template is in roles directory of this repository
