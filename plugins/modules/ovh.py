@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ANSIBLE_METADATA = {
-    'metadata_version': '2.3',
+    'metadata_version': '2.4',
     'supported_by': 'community',
     'status': ['preview']
         }
@@ -132,67 +132,98 @@ options:
 '''
 
 EXAMPLES = '''
-
-# Add a host into the vrack
 - name: Add server to vrack
-  ovh: service='vrack' vrack='VRACK ID' name='HOSTNAME'
+  ovh:
+    service: vrack
+    vrack: "VRACK ID"
+    name: "HOSTNAME"
 
-# Add a DNS entry for `internal.bar.foo.com`
 - name: Add server IP to DNS
-  ovh: service='dns' domain='foo.com' ip='1.2.3.4' name='internal.bar'
+  ovh:
+    service: dns
+    domain: "example.com"
+    ip: "192.0.21"
+    name: "internal.bar"
 
 - name: Refresh domain
-  ovh: service='dns' name='refresh' domain='{{ domain }}'
+  ovh:
+    service: dns
+    name: refresh
+    domain: "example.com"
 
-# Change a server reverse
 - name: Change Reverse on server
-  ovh: service=reverse name='internal.bar' ip='1.2.3.4' domain='foo.com'
+  ovh:
+    service: reverse
+    name: "internal.bar"
+    ip: "192.0.2.1"
+    domain: "example.com"
 
-# Install a server from a template
 - name: Install the dedicated server
-  ovh: endpoint='ovh-eu' application_key='my_app_key' application_secret='my_application_secret' consumer_key='my_consumer_key' service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='SOME TEMPLATE' ssh_key_name='My Key' use_distrib_kernel=True
+  ovh:
+    service: install
+    name: "ovhname.ovh.eu"
+    hostname: "internal.bar.example.com"
+    template: "SOME TEMPLATE"
 
 - name: Wait until installation is finished
   local_action:
     module: ovh
     args:
       service: status
-      name: 'foo.ovh.eu'
+      name: "ovhname.ovh.eu"
       max_retry: 150
       sleep: 10
-  register: result
+  ovh:
+    service: monitoring
+    name: "ovhname.ovh.eu"
+    state: "present / absent"
 
-# Enable / disable OVH monitoring
-- name: Remove ovh monitoring when necessary
-  ovh: service='monitoring' name='foo.ovh.eu' state='present / absent' max_retry=10 sleep=10
-
-# List personal dedicated servers
 - name: Get list of servers
-  ovh: service='list' name='dedicated'
+  ovh:
+    service: list
+    name: dedicated
   register: servers
 
-# List personal templates
 - name: Get list of personal templates
-  ovh: service='list' name='templates'
+  ovh:
+    service: list
+    name: templates
   register: templates
 
-# Create a new template and install it
 - name: check if template is already installed
-  ovh: service='list' name='templates'
+  ovh:
+    service: list
+    name: templates
   register: templates
 
-# the template musts be located in files directory inside the role
 - name: Create template
-  ovh: service='template' name='custom' state='present'
+  ovh:
+    service: template
+    name: custom_template
+    state: "present"
   run_once: yes
   when: template not in templates.objects
 
 - name: Install the dedicated server
-  ovh: service='install' name='foo.ovh.eu' hostname='internal.bar.foo.com' template='custom'
+  ovh:
+    service: install
+    name: ovhname.ovh.eu
+    hostname: "internal.bar.example.com"
+    template: "custom_template"
+    ssh_key_name="My Key"
+    use_distrib_kernel=True
 
 - name: Delete template
-  ovh: service='template' name='{{ template }}' state='absent'
+  ovh:
+    service: template
+    name: "custom_template"
+    state: "absent"
   run_once: yes
+
+- name: terminate server
+  ovh:
+    service: terminate
+    name: "ns6666666.ip-42-422-42.eu"
 '''
 
 RETURN = ''' # '''
