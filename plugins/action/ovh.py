@@ -27,8 +27,8 @@ class ActionModule(ActionBase):
 		hostname = self._task.args.get('hostname', None)
 		service = self._task.args.get('service', None)
 		link_type = self._task.args.get('link_type', None)
-                max_retry = self._task.args.get('max_retry', 10)
-                sleep = self._task.args.get('sleep', 10)
+		max_retry = self._task.args.get('max_retry', 10)
+		sleep = self._task.args.get('sleep', 10)
 
 		ssh_key_name = self._task.args.get('ssh_key_name', None)
 		use_distrib_kernel = self._task.args.get('use_distrib_kernel', False)
@@ -49,12 +49,12 @@ class ActionModule(ActionBase):
 		else:
 			del result['failed']
 		if result.get('failed'):
-                        return result
+			return result
 
 		if service == 'template':
 			try:
 				new_src = self._find_needle('files', template)
-                        except AnsibleError as e:
+			except AnsibleError as e:
 				result['failed'] = True
 				result['msg'] = to_text(e)
 				return result
@@ -63,12 +63,12 @@ class ActionModule(ActionBase):
 		module_return = dict(changed=False)
 		module_executed = False
 
-                new_module_args = self._task.args.copy()
-                new_module_args.update(
-                    dict(
-                        template=new_src
-                    )
-                )
+		new_module_args = self._task.args.copy()
+		new_module_args.update(
+			dict(
+				template=new_src
+			)
+		)
 		module_return = self._execute_module(module_name='ovh', module_args=new_module_args, task_vars=task_vars)
 		module_executed = True
 

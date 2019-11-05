@@ -592,7 +592,7 @@ def generateTemplate(ovhclient, module):
                 ovhclient.post('/me/installationTemplate/%s/checkIntegrity' % conf['templateName'])
             except APIError as apiError:
                 module.fail_json(changed=False, msg="Failed to call OVH API: {0}".format(apiError)) 
-	    module.exit_json(changed=True, msg="Template %s succesfully created" % conf['templateName'])
+            module.exit_json(changed=True, msg="Template %s succesfully created" % conf['templateName'])
         elif module.params['state'] == 'absent':
             try:
                 ovhclient.delete('/me/installationTemplate/%s' % conf['templateName'])
