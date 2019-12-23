@@ -1,7 +1,4 @@
 #! /usr/bin/make -f
 
-VERSION=2.1
-
 %:
 	dh $@
-
