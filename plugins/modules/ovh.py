@@ -8,6 +8,15 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.utils.display import Display
 from ansible import constants
 
+try:
+    import ovh
+    from ovh.exceptions import APIError, ResourceNotFoundError
+
+    HAS_OVH = True
+except ImportError:
+    HAS_OVH = False
+
+
 ANSIBLE_METADATA = {
     "metadata_version": "3.0",
     "supported_by": "community",
@@ -72,7 +81,7 @@ options:
               or deleted
     service:
         required: true
-        choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 
+        choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status',
                   'list', 'template', 'terminate']
         description:
             - Determines the service you want to use in the module
@@ -96,6 +105,11 @@ options:
         default: None
         description:
             - The public IP used in reverse and dns services
+    txt:
+        required: false
+        default: None
+        description:
+            - The value of the TXT to create
     vrack:
         required: false
         default: None
@@ -147,11 +161,26 @@ EXAMPLES = """
     vrack: "VRACK ID"
     name: "HOSTNAME"
 
-- name: Add server IP to DNS
+- name: Add a DNS (TXT) entry for `_acme-challenge.site.example.com`
+  ovh:
+    service: 'dns'
+    domain: 'example.com'
+    name: '_acme-challenge.site'
+    txt: 'd41d8cd98f00b204e9800998ecf8427e'
+
+- name: Add a DNS (A) entry for `internal.bar.foo.com`
   ovh:
     service: dns
     domain: "example.com"
     ip: "192.0.21"
+    name: "internal.bar"
+
+- name: Add a DNS (CNAME) entry for `internal.bar.foo.com` that will an CNAME for `external.com`
+  ovh:
+    service: dns
+    domain: "example.com"
+    record_type: "CNAME"
+    value: "external.com."
     name: "internal.bar"
 
 - name: Refresh domain
@@ -237,15 +266,6 @@ EXAMPLES = """
 
 RETURN = """ # """
 
-try:
-    import ovh
-    import ovh.exceptions
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
-
 display = Display()
 
 
@@ -275,6 +295,9 @@ def main():
         ),
         domain=dict(required=False, default=None),
         ip=dict(required=False, default=None),
+        record_type=dict(required=False, default=u"A"),
+        value=dict(required=False, default=None),
+        txt=dict(required=False, default=None),
         vrack=dict(required=False, default=None),
         boot=dict(default="harddisk", choices=["harddisk", "rescue"]),
         force_reboot=dict(required=False, type="bool", default=False),
@@ -364,6 +387,9 @@ class OVHModule:
     def change_dns(self):
         domain = self.params["domain"]
         ip = self.params["ip"]
+        record_type = self.params["record_type"]
+        value = self.params["value"]
+        txt = self.params["txt"]
         name = self.params["name"]
         state = self.params["state"]
 
@@ -372,7 +398,10 @@ class OVHModule:
         if not domain:
             return self.fail("Please give a domain to add your target")
 
-        if name == "refresh":
+        if not name:
+            return self.fail("Please give a name for your entry")
+
+        if name == "refresh" and not ip and not txt and not value:
             if self.check_mode:
                 return self.succeed(
                     "Domain %s succesfully refreshed ! - (dry run mode)" % domain,
@@ -393,12 +422,29 @@ class OVHModule:
                 changed=True,
             )
 
-        if not ip:
+        if ip:
+            if record_type != "A":
+                return self.fail(
+                    "Inconsistent data in task, should provide a record_type != 'A' "
+                    "if IP is provided"
+                )
+            elif txt or value:
+                return self.fail(
+                    "Inconsistent data in task, should not provide TXT or VALUE if IP is provided"
+                )
+            else:
+                record_type = "A"
+                value = ip
+        elif txt:
+            record_type = "TXT"
+            value = txt
+
+        else:
             return self.fail("Please give an IP to add your target")
 
         try:
             check = self.client.get(
-                "/domain/zone/%s/record" % domain, fieldType="A", subDomain=name
+                "/domain/zone/%s/record" % domain, fieldType=record_type, subDomain=name
             )
         except APIError as api_error:
             return self.fail("Failed to call OVH API: {0}".format(api_error))
@@ -413,9 +459,9 @@ class OVHModule:
             try:
                 result = self.client.post(
                     "/domain/zone/%s/record" % domain,
-                    fieldType="A",
+                    fieldType=record_type,
                     subDomain=name,
-                    target=ip,
+                    target=value,
                 )
                 return self.succeed(message=None, contents=result, changed=True)
             except APIError as api_error:
@@ -432,11 +478,12 @@ class OVHModule:
                     self.client.put(
                         "/domain/zone/%s/record/%s" % (domain, ind),
                         subDomain=name,
-                        target=ip,
+                        target=value,
                     )
                     msg += (
-                        '{ "fieldType": "A", "id": "%s", "subDomain": "%s",'
-                        '"target": "%s", "zone": "%s" } ' % (ind, name, ip, domain)
+                        '{ "fieldType": "%s", "id": "%s", "subDomain": "%s",'
+                        '"target": "%s", "zone": "%s" } '
+                        % (record_type, ind, name, value, domain)
                     )
                 return self.succeed(msg, changed=True)
             except APIError as api_error:
@@ -680,7 +727,7 @@ class OVHModule:
         result = {}
         try:
             result = self.client.get("/ip/%s/reverse/%s" % (ip, ip))
-        except ovh.exceptions.ResourceNotFoundError:
+        except ResourceNotFoundError:
             result["reverse"] = ""
 
         if result["reverse"] == fqdn:
