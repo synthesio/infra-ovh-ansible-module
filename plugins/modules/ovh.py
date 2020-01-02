@@ -72,7 +72,8 @@ options:
               or deleted
     service:
         required: true
-        choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate']
+        choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 
+                  'list', 'template', 'terminate']
         description:
             - Determines the service you want to use in the module
               boot, change the bootid and can reboot the dedicated server
@@ -434,8 +435,8 @@ class OVHModule:
                         target=ip,
                     )
                     msg += (
-                        '{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } '
-                        % (ind, name, ip, domain)
+                        '{ "fieldType": "A", "id": "%s", "subDomain": "%s",'
+                        '"target": "%s", "zone": "%s" } ' % (ind, name, ip, domain)
                     )
                 return self.succeed(msg, changed=True)
             except APIError as api_error:
@@ -503,7 +504,8 @@ class OVHModule:
             return self.succeed("done - (dry run mode)", changed=False)
 
         for i in range(1, int(max_retry)):
-            # Messages cannot be displayed in real time (yet): https://github.com/ansible/proposals/issues/92
+            # Messages cannot be displayed in real time (yet):
+            #   https://github.com/ansible/proposals/issues/92
             display.display(
                 "%i out of %i" % (i, int(max_retry)), constants.COLOR_VERBOSE
             )
@@ -855,7 +857,8 @@ class OVHModule:
 
             if len(result["controllers"]) != 1:
                 return self.fail(
-                    "Failed to call OVH API: {0} Code can't handle more than one controller when using Hardware Raid setups"
+                    "Failed to call OVH API: {0} Code can't handle more than one controller when "
+                    "using Hardware Raid setups"
                 )
 
             # XXX: Only works with a server who has one controller.
@@ -951,15 +954,18 @@ class OVHModule:
                 # There is no easy way to know if the server is on an old or new network generation.
                 # So we need to call this new route to ask for virtualNetworkInterface
                 # and if the answer is empty, it's on a old generation.
-                # The /vrack/%s/allowedServices route used previously has availability and scaling problems.
+                # The /vrack/%s/allowedServices route used previously has availability and scaling
+                # problems.
                 result = self.client.get(
                     "/dedicated/server/%s/virtualNetworkInterface" % name, mode="vrack"
                 )
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
 
-            # XXX: In a near future, OVH will add the possibility to add multiple interfaces to the same VRACK or another one
-            # This code may break at this moment because each server will have a list of dedicatedServerInterface
+            # XXX: In a near future, OVH will add the possibility to add multiple interfaces to the
+            # same VRACK or another one
+            # This code may break at this moment because each server will have a list of
+            # dedicatedServerInterface
 
             # New generation
             if len(result):

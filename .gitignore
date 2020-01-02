@@ -3,3 +3,4 @@
 debian/files
 *.build
 
+**/.vscode
