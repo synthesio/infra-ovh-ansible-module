@@ -438,7 +438,8 @@ class OVHModule:
         elif txt:
             record_type = "TXT"
             value = txt
-
+        elif value and record_type:
+            record_type = record_type.upper()
         else:
             return self.fail("Please give an IP to add your target")
 
