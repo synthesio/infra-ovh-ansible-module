@@ -105,11 +105,26 @@ options:
         default: None
         description:
             - The public IP used in reverse and dns services
+    record_type:
+        required: false
+        default: 'A'
+        description:
+            - The kind of DNS record to create/modify/delete
     txt:
         required: false
         default: None
         description:
-            - The value of the TXT to create
+            - The value of the DNS TXT record to create/modify/delete
+    value:
+        required: false
+        default: None
+        description:
+            - The value of the DNS record to create/modify/delete
+    create:
+        required: false
+        default: None
+        description:
+            - If the DNS entry must created when it does not exist and state id 'modified'
     vrack:
         required: false
         default: None
@@ -298,6 +313,7 @@ def main():
         record_type=dict(required=False, default=u"A"),
         value=dict(required=False, default=None),
         txt=dict(required=False, default=None),
+        create=dict(required=False, type="bool", default=False),
         vrack=dict(required=False, default=None),
         boot=dict(default="harddisk", choices=["harddisk", "rescue"]),
         force_reboot=dict(required=False, type="bool", default=False),
@@ -392,6 +408,7 @@ class OVHModule:
         txt = self.params["txt"]
         name = self.params["name"]
         state = self.params["state"]
+        create = self.params["create"]
 
         msg = ""
 
@@ -470,9 +487,23 @@ class OVHModule:
 
         elif state == "modified":
             if not check:
-                return self.fail(
-                    "The target %s doesn't exist in domain %s" % (name, domain)
-                )
+                if not create:
+                    return self.fail(
+                        "The target %s doesn't exist in domain %s" % (name, domain)
+                    )
+                else:
+                    try:
+                        result = self.client.post(
+                            "/domain/zone/%s/record" % domain,
+                            fieldType=record_type,
+                            subDomain=name,
+                            target=value,
+                        )
+                        return self.succeed(message=None, contents=result, changed=True)
+                    except APIError as api_error:
+                        return self.fail(
+                            "Failed to call OVH API: {0}".format(api_error)
+                        )
 
             try:
                 for ind in check:

@@ -83,6 +83,8 @@ Here are a few examples of what you can do. Please read the module for everythin
     record_type: "CNAME"
     name: "mail.local"
     value: "mail.mydomain.com."
+    state: "modified"
+    create: yes
 
 
 - name: Refresh domain
