@@ -483,7 +483,7 @@ class OVHModule:
                         message = progress['comment']
             display.display("%s: %s" % (result['status'], message), constants.COLOR_VERBOSE)
             time.sleep(float(sleep))
-        return self.fail("Max wait time reached, about %i x %i seconds" % (i, int(max_retry)))
+        return self.fail("Max wait time reached, about %i x %i seconds" % (i, int(sleep)))
 
     def launch_install(self):
         name = self.params['name']
