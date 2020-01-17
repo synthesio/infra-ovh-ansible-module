@@ -2,9 +2,9 @@
 
 ## Requirements
 
-- python 2.7
+- python 2.7+ or 3.5+
 - python-ovh: https://github.com/ovh/python-ovh
-- Only tested with Ansible 2.7.0+
+- Only tested with Ansible 2.7+
 
 ## Configuration
 
@@ -39,8 +39,8 @@ Alternatively, you can provide credentials as module attributes:
     application_secret: "<YOUR APPLICATIOM SECRET>"
     consumer_key: "<YOUR CONSUMER KEY>"
     service: vrack
-    vrack: "VRACK ID"
-    name: "HOSTNAME"
+    vrack: "{{ vrackid }}"
+    name: "{{ ovhname }}"
 ```
 
 This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
@@ -55,8 +55,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 - name: Add server to vrack
   ovh:
     service: vrack
-    vrack: "VRACK ID"
-    name: "HOSTNAME"
+    vrack: "{{ vrackid }}"
+    name: "{{ ovhname }}"
 ```
 
 ### Add a DNS entry for `internal.bar.example.com`
@@ -66,7 +66,7 @@ Here are a few examples of what you can do. Please read the module for everythin
   ovh:
     service: dns
     domain: "example.com"
-    ip: "192.0.21"
+    ip: "192.0.2.1"
     name: "internal.bar"
 
 - name: Refresh domain
@@ -94,18 +94,17 @@ Here are a few examples of what you can do. Please read the module for everythin
 - name: Install the dedicated server
   ovh:
     service: install
-    name: "ovhname.ovh.eu"
-    hostname: "internal.bar.example.com"
-    template: "SOME TEMPLATE"
-
+    name: "{{ ovhname }}"
+    hostname: "{{ inventory_hostname }}.{{ domain }}"
+    template: "{{ template }}"
+  
 - name: Wait until installation is finished
-  local_action:
-    module: ovh
-    args:
-      service: status
-      name: "ovhname.ovh.eu"
-      max_retry: 150
-      sleep: 10
+  ovh:
+    service: status
+    name: "{{ ovhname }}"
+    max_retry: 150
+    sleep: 10
+  delegate_to: localhost
 
 ```
 
@@ -115,8 +114,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 - name: Remove ovh monitoring when necessary
   ovh:
     service: monitoring
-    name: "ovhname.ovh.eu"
-    state: "present / absent"
+    name: "{{ ovhname }}"
+    state: "absent"
 ```
 
 ### List dedicated servers or personal templates
@@ -153,11 +152,11 @@ Here are a few examples of what you can do. Please read the module for everythin
 - name: Install the dedicated server
   ovh:
     service: install
-    name: ovhname.ovh.eu
+    name: "{{ ovhname }}"
     hostname: "internal.bar.example.com"
     template: "custom_template"
-    ssh_key_name="My Key"
-    use_distrib_kernel=True
+    ssh_key_name: "My Key"
+    use_distrib_kernel: True
 
 - name: Delete template
   ovh:
@@ -170,7 +169,7 @@ Here are a few examples of what you can do. Please read the module for everythin
 - name: terminate server
   ovh:
     service: terminate
-    name: "ns6666666.ip-42-422-42.eu"
+    name: "{{ ovhname }}"
 ```
 
 An example of yml template is in roles directory of this repository

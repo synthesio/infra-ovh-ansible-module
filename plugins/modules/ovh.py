@@ -9,7 +9,7 @@ from ansible.utils.display import Display
 from ansible import constants
 
 ANSIBLE_METADATA = {
-    'metadata_version': '3.0',
+    'metadata_version': '3.1',
     'supported_by': 'community',
     'status': ['preview']
 }
@@ -143,14 +143,14 @@ EXAMPLES = '''
 - name: Add server to vrack
   ovh:
     service: vrack
-    vrack: "VRACK ID"
-    name: "HOSTNAME"
+    vrack: "{{ vrackid }}"
+    name: "{{ ovhname }}"
 
 - name: Add server IP to DNS
   ovh:
     service: dns
     domain: "example.com"
-    ip: "192.0.21"
+    ip: "192.0.2.1"
     name: "internal.bar"
 
 - name: Refresh domain
@@ -169,69 +169,14 @@ EXAMPLES = '''
 - name: Install the dedicated server
   ovh:
     service: install
-    name: "ovhname.ovh.eu"
-    hostname: "internal.bar.example.com"
-    template: "SOME TEMPLATE"
+    name: "{{ ovhname }}"
+    hostname: "{{ inventory_hostname }}.{{ domain }}"
+    template: "{{ template }}"
 
 - name: Wait until installation is finished
-  local_action:
-    module: ovh
-    args:
-      service: status
-      name: "ovhname.ovh.eu"
-      max_retry: 150
-      sleep: 10
   ovh:
-    service: monitoring
-    name: "ovhname.ovh.eu"
-    state: "present / absent"
-
-- name: Get list of servers
-  ovh:
-    service: list
-    name: dedicated
-  register: servers
-
-- name: Get list of personal templates
-  ovh:
-    service: list
-    name: templates
-  register: templates
-
-- name: check if template is already installed
-  ovh:
-    service: list
-    name: templates
-  register: templates
-
-- name: Create template
-  ovh:
-    service: template
-    name: custom_template
-    state: "present"
-  run_once: yes
-  when: template not in templates.objects
-
-- name: Install the dedicated server
-  ovh:
-    service: install
-    name: ovhname.ovh.eu
-    hostname: "internal.bar.example.com"
-    template: "custom_template"
-    ssh_key_name="My Key"
-    use_distrib_kernel=True
-
-- name: Delete template
-  ovh:
-    service: template
-    name: "custom_template"
-    state: "absent"
-  run_once: yes
-
-- name: terminate server
-  ovh:
-    service: terminate
-    name: "ns6666666.ip-42-422-42.eu"
+    service: status
+    name: "{{ ovhname }}"
 '''
 
 RETURN = ''' # '''
@@ -483,7 +428,7 @@ class OVHModule:
                         message = progress['comment']
             display.display("%s: %s" % (result['status'], message), constants.COLOR_VERBOSE)
             time.sleep(float(sleep))
-        return self.fail("Max wait time reached, about %i x %i seconds" % (i, int(max_retry)))
+        return self.fail("Max wait time reached, about %i x %i seconds" % (i, int(sleep)))
 
     def launch_install(self):
         name = self.params['name']
