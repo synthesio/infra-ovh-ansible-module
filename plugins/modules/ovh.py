@@ -120,6 +120,11 @@ options:
         default: None
         description:
             - The value of the DNS record to create/modify/delete
+    ttl:
+        required: false
+        default: 600
+        description:
+            - The Time To Live for DNS record
     create:
         required: false
         default: None
@@ -406,6 +411,7 @@ class OVHModule:
         record_type = self.params["record_type"]
         value = self.params["value"]
         txt = self.params["txt"]
+        ttl_value = self.params["ttl"]
         name = self.params["name"]
         state = self.params["state"]
         create = self.params["create"]
@@ -480,6 +486,7 @@ class OVHModule:
                     fieldType=record_type,
                     subDomain=name,
                     target=value,
+                    ttl=ttl_value,
                 )
                 return self.succeed(message=None, contents=result, changed=True)
             except APIError as api_error:
@@ -498,6 +505,7 @@ class OVHModule:
                             fieldType=record_type,
                             subDomain=name,
                             target=value,
+                            ttl=ttl_value,
                         )
                         return self.succeed(message=None, contents=result, changed=True)
                     except APIError as api_error:
