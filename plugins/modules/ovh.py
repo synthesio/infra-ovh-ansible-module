@@ -202,6 +202,7 @@ EXAMPLES = """
     record_type: "CNAME"
     value: "external.com."
     name: "internal.bar"
+    ttl: 300
 
 - name: Refresh domain
   ovh:
@@ -318,6 +319,7 @@ def main():
         record_type=dict(required=False, default=u"A"),
         value=dict(required=False, default=None),
         txt=dict(required=False, default=None),
+        ttl=dict(required=False, default=600),
         create=dict(required=False, type="bool", default=False),
         vrack=dict(required=False, default=None),
         boot=dict(default="harddisk", choices=["harddisk", "rescue"]),
