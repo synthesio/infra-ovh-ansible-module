@@ -423,7 +423,7 @@ class OVHModule:
         if not domain:
             return self.fail("Please give a domain to add your target")
 
-        if not name:
+        if not name and name != "":
             return self.fail("Please give a name for your entry")
 
         if name == "refresh" and not ip and not txt and not value:
@@ -469,9 +469,17 @@ class OVHModule:
             return self.fail("Please give an IP to add your target")
 
         try:
-            check = self.client.get(
-                "/domain/zone/%s/record" % domain, fieldType=record_type, subDomain=name
-            )
+            if name != "":
+                check = self.client.get(
+                    "/domain/zone/%s/record" % domain,
+                    fieldType=record_type,
+                    subDomain=name,
+                )
+            else:
+                check = self.client.get(
+                    "/domain/zone/%s/record" % domain, fieldType=record_type
+                )
+
         except APIError as api_error:
             return self.fail("Failed to call OVH API: {0}".format(api_error))
 
@@ -483,13 +491,22 @@ class OVHModule:
                 )
 
             try:
-                result = self.client.post(
-                    "/domain/zone/%s/record" % domain,
-                    fieldType=record_type,
-                    subDomain=name,
-                    target=value,
-                    ttl=ttl_value,
-                )
+                if name != "":
+                    result = self.client.post(
+                        "/domain/zone/%s/record" % domain,
+                        fieldType=record_type,
+                        subDomain=name,
+                        target=value,
+                        ttl=ttl_value,
+                    )
+                else:
+                    result = self.client.post(
+                        "/domain/zone/%s/record" % domain,
+                        fieldType=record_type,
+                        target=value,
+                        ttl=ttl_value,
+                    )
+
                 return self.succeed(message=None, contents=result, changed=True)
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
