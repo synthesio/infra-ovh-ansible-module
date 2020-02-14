@@ -442,7 +442,7 @@ class OVHModule:
                 )
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
-        else:
+        elif name == "refresh":
             return self.fail(
                 "Failed to call OVH API: wrong set of parameters, check your task"
             )
