@@ -66,9 +66,9 @@ options:
     state:
         required: false
         default: present
-        choices: ['present', 'absent', 'modified']
+        choices: ['present', 'absent']
         description:
-            - Determines whether the dedicated/dns is to be created/modified
+            - Determines whether the dedicated/dns is to be created/updated
               or deleted
     service:
         required: true
@@ -198,7 +198,7 @@ def main():
         application_key=dict(required=False, default=None),
         application_secret=dict(required=False, default=None),
         consumer_key=dict(required=False, default=None),
-        state=dict(default='present', choices=['present', 'absent', 'modified']),
+        state=dict(default='present', choices=['present', 'absent']),
         name=dict(required=True),
         service=dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate', 'getmac'], required=True),
         domain=dict(required=False, default=None),
@@ -208,8 +208,8 @@ def main():
         force_reboot=dict(required=False, type='bool', default=False),
         template=dict(required=False, default=None),
         hostname=dict(required=False, default=None),
-        max_retry=dict(required=False, default=10),
-        sleep=dict(required=False, default=10),
+        max_retry=dict(required=False, default='10'),
+        sleep=dict(required=False, default='10'),
         ssh_key_name=dict(required=False, default=None),
         use_distrib_kernel=dict(required=False, type='bool', default=False),
         link_type=dict(required=False, default='private', choices=['public', 'private'])
@@ -307,11 +307,8 @@ class OVHModule:
         if self.check_mode:
             return self.succeed("DNS succesfully %s on %s - (dry run mode)" % (state, name), changed=True)
 
-        if not ip:
-            return self.fail("Please give an IP to add your target")
-
         try:
-            check = self.client.get(
+            existing_records = self.client.get(
                 '/domain/zone/%s/record' % domain,
                 fieldType='A',
                 subDomain=name
@@ -320,9 +317,43 @@ class OVHModule:
             return self.fail("Failed to call OVH API: {0}".format(api_error))
 
         if state == 'present':
-            if check:
-                return self.succeed("%s is already registered in domain %s" % (name, domain), changed=False)
+            if not ip:
+                return self.fail("Please give an IP to add your target")
 
+            # At least one record already exists
+            if existing_records:
+                for ind in existing_records:
+                    try:
+                        record = self.client.get(
+                            '/domain/zone/%s/record/%s' % (domain, ind)
+                        )
+                        # The record alredy exist
+                        if record.get('subDomain') == name and record.get('target') == ip:
+                            return self.succeed("%s is already registered in domain %s" % (name, domain), changed=False)
+                    except APIError as api_error:
+                        return self.fail("Failed to call OVH API: {0}".format(api_error))
+
+                # Gatekeeper: if more than one record match the query, don't update anything and fail
+                if len(existing_records) > 1:
+                    return self.fail("More than one record match the name (%s) in domain (%s), this module won't update all of these records."
+                                     % (name,domain))
+
+                # Update the record if needed:
+                # Was only done before when state=='modified'
+                try:
+                    ind = existing_records[0]
+                    self.client.put(
+                        '/domain/zone/%s/record/%s' % (domain, ind),
+                        subDomain=name,
+                        target=ip
+                    )
+                    msg = ('{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } '
+                            % (ind, name, ip, domain))
+                    return self.succeed(msg, changed=True)
+                except APIError as api_error:
+                    return self.fail("Failed to call OVH API: {0}".format(api_error))
+
+            # The record does not exist yet
             try:
                 result = self.client.post(
                     '/domain/zone/%s/record' % domain,
@@ -334,33 +365,21 @@ class OVHModule:
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
 
-        elif state == 'modified':
-            if not check:
-                return self.fail("The target %s doesn't exist in domain %s" % (name, domain))
-
-            try:
-                for ind in check:
-                    self.client.put(
-                        '/domain/zone/%s/record/%s' % (domain, ind),
-                        subDomain=name,
-                        target=ip
-                    )
-                    msg += ('{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } '
-                            % (ind, name, ip, domain))
-                return self.succeed(msg, changed=True)
-            except APIError as api_error:
-                return self.fail("Failed to call OVH API: {0}".format(api_error))
-
         elif state == 'absent':
-            if not check:
+            if not existing_records:
                 return self.succeed("Target %s doesn't exist on domain %s" % (name, domain), changed=False)
 
+            record_deleted = []
             try:
-                for ind in check:
+                for ind in existing_records:
+                    record = self.client.get(
+                        '/domain/zone/%s/record/%s' % (domain, ind)
+                    )
                     self.client.delete(
                         '/domain/zone/%s/record/%s' % (domain, ind)
                     )
-                return self.succeed("Target %s succesfully deleted from domain %s" % (name, domain), changed=True)
+                    record_deleted.append("%s IN A %s" % (record.get('subDomain'), record.get('target')))
+                return self.succeed(",".join(record_deleted) + " successfuly deleted from domain %s" % domain, changed=True)
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
 
