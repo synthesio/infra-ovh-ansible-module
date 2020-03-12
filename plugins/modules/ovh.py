@@ -66,9 +66,9 @@ options:
     state:
         required: false
         default: present
-        choices: ['present', 'absent', 'modified']
+        choices: ['present', 'absent']
         description:
-            - Determines whether the dedicated/dns is to be created/modified
+            - Determines whether the dedicated/dns is to be created/updated
               or deleted
     service:
         required: true
@@ -198,9 +198,10 @@ def main():
         application_key=dict(required=False, default=None),
         application_secret=dict(required=False, default=None),
         consumer_key=dict(required=False, default=None),
-        state=dict(default='present', choices=['present', 'absent', 'modified']),
+        state=dict(default='present', choices=['present', 'absent']),
         name=dict(required=True),
-        service=dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate', 'getmac'], required=True),
+        service=dict(choices=['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install',
+                              'status', 'list', 'template', 'terminate', 'getmac'], required=True),
         domain=dict(required=False, default=None),
         ip=dict(required=False, default=None),
         vrack=dict(required=False, default=None),
@@ -208,11 +209,12 @@ def main():
         force_reboot=dict(required=False, type='bool', default=False),
         template=dict(required=False, default=None),
         hostname=dict(required=False, default=None),
-        max_retry=dict(required=False, default=10),
-        sleep=dict(required=False, default=10),
+        max_retry=dict(required=False, default='10'),
+        sleep=dict(required=False, default='10'),
         ssh_key_name=dict(required=False, default=None),
         use_distrib_kernel=dict(required=False, type='bool', default=False),
-        link_type=dict(required=False, default='private', choices=['public', 'private'])
+        link_type=dict(required=False, default='private',
+                       choices=['public', 'private'])
     )
 
     module = AnsibleModule(
@@ -241,11 +243,14 @@ class OVHModule:
         if not HAS_OVH:
             return self.fail('OVH Api wrapper not installed')
 
-        credentials = ['endpoint', 'application_key', 'application_secret', 'consumer_key']
-        credentials_in_parameters = [cred in self.params for cred in credentials]
+        credentials = ['endpoint', 'application_key',
+                       'application_secret', 'consumer_key']
+        credentials_in_parameters = [
+            cred in self.params for cred in credentials]
         try:
             if all(credentials_in_parameters):
-                self.client = ovh.Client(**{credential: self.params[credential] for credential in credentials})
+                self.client = ovh.Client(
+                    **{credential: self.params[credential] for credential in credentials})
             else:
                 self.client = ovh.Client()
         except APIError as api_error:
@@ -307,11 +312,8 @@ class OVHModule:
         if self.check_mode:
             return self.succeed("DNS succesfully %s on %s - (dry run mode)" % (state, name), changed=True)
 
-        if not ip:
-            return self.fail("Please give an IP to add your target")
-
         try:
-            check = self.client.get(
+            existing_records = self.client.get(
                 '/domain/zone/%s/record' % domain,
                 fieldType='A',
                 subDomain=name
@@ -320,9 +322,43 @@ class OVHModule:
             return self.fail("Failed to call OVH API: {0}".format(api_error))
 
         if state == 'present':
-            if check:
-                return self.succeed("%s is already registered in domain %s" % (name, domain), changed=False)
+            if not ip:
+                return self.fail("Please give an IP to add your target")
 
+            # At least one record already exists
+            if existing_records:
+                for ind in existing_records:
+                    try:
+                        record = self.client.get(
+                            '/domain/zone/%s/record/%s' % (domain, ind)
+                        )
+                        # The record alredy exist
+                        if record.get('subDomain') == name and record.get('target') == ip:
+                            return self.succeed("%s is already registered in domain %s" % (name, domain), changed=False)
+                    except APIError as api_error:
+                        return self.fail("Failed to call OVH API: {0}".format(api_error))
+
+                # Gatekeeper: if more than one record match the query, don't update anything and fail
+                if len(existing_records) > 1:
+                    return self.fail("More than one record match the name (%s) in domain (%s), this module won't update all of these records."
+                                     % (name, domain))
+
+                # Update the record if needed:
+                # Was only done before when state=='modified'
+                try:
+                    ind = existing_records[0]
+                    self.client.put(
+                        '/domain/zone/%s/record/%s' % (domain, ind),
+                        subDomain=name,
+                        target=ip
+                    )
+                    msg = ('{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } '
+                           % (ind, name, ip, domain))
+                    return self.succeed(msg, changed=True)
+                except APIError as api_error:
+                    return self.fail("Failed to call OVH API: {0}".format(api_error))
+
+            # The record does not exist yet
             try:
                 result = self.client.post(
                     '/domain/zone/%s/record' % domain,
@@ -334,33 +370,22 @@ class OVHModule:
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
 
-        elif state == 'modified':
-            if not check:
-                return self.fail("The target %s doesn't exist in domain %s" % (name, domain))
-
-            try:
-                for ind in check:
-                    self.client.put(
-                        '/domain/zone/%s/record/%s' % (domain, ind),
-                        subDomain=name,
-                        target=ip
-                    )
-                    msg += ('{ "fieldType": "A", "id": "%s", "subDomain": "%s", "target": "%s", "zone": "%s" } '
-                            % (ind, name, ip, domain))
-                return self.succeed(msg, changed=True)
-            except APIError as api_error:
-                return self.fail("Failed to call OVH API: {0}".format(api_error))
-
         elif state == 'absent':
-            if not check:
+            if not existing_records:
                 return self.succeed("Target %s doesn't exist on domain %s" % (name, domain), changed=False)
 
+            record_deleted = []
             try:
-                for ind in check:
+                for ind in existing_records:
+                    record = self.client.get(
+                        '/domain/zone/%s/record/%s' % (domain, ind)
+                    )
                     self.client.delete(
                         '/domain/zone/%s/record/%s' % (domain, ind)
                     )
-                return self.succeed("Target %s succesfully deleted from domain %s" % (name, domain), changed=True)
+                    record_deleted.append("%s IN A %s" % (
+                        record.get('subDomain'), record.get('target')))
+                return self.succeed(",".join(record_deleted) + " successfuly deleted from domain %s" % domain, changed=True)
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
 
@@ -368,7 +393,8 @@ class OVHModule:
         name = self.params['name']
         link_type = self.params['link_type']
         result = self.client.get(
-            '/dedicated/server/%s/networkInterfaceController?linkType=%s' % (name, link_type)
+            '/dedicated/server/%s/networkInterfaceController?linkType=%s' % (
+                name, link_type)
         )
         return self.succeed(result, changed=False)
 
@@ -402,7 +428,8 @@ class OVHModule:
 
         for i in range(1, int(max_retry)):
             # Messages cannot be displayed in real time (yet): https://github.com/ansible/proposals/issues/92
-            display.display("%i out of %i" % (i, int(max_retry)), constants.COLOR_VERBOSE)
+            display.display("%i out of %i" %
+                            (i, int(max_retry)), constants.COLOR_VERBOSE)
             try:
                 tasklist = self.client.get(
                     '/dedicated/server/%s/task' % name,
@@ -426,7 +453,8 @@ class OVHModule:
                 for progress in progress_status['progress']:
                     if progress["status"] == "doing":
                         message = progress['comment']
-            display.display("%s: %s" % (result['status'], message), constants.COLOR_VERBOSE)
+            display.display("%s: %s" % (
+                result['status'], message), constants.COLOR_VERBOSE)
             time.sleep(float(sleep))
         return self.fail("Max wait time reached, about %i x %i seconds" % (i, int(sleep)))
 
@@ -459,7 +487,8 @@ class OVHModule:
         if self.check_mode:
             return self.succeed("Installation in progress on %s ! - (dry run mode)" % name, changed=True)
 
-        details = {"details": {"language": "en", "customHostname": hostname}, "templateName": template}
+        details = {"details": {"language": "en",
+                               "customHostname": hostname}, "templateName": template}
         if ssh_key_name:
             try:
                 result = self.client.get('/me/sshKey')
@@ -470,9 +499,10 @@ class OVHModule:
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
         if use_distrib_kernel:
-                details['details']['useDistribKernel'] = use_distrib_kernel
+            details['details']['useDistribKernel'] = use_distrib_kernel
         try:
-            self.client.post('/dedicated/server/%s/install/start' % name, **details)
+            self.client.post(
+                '/dedicated/server/%s/install/start' % name, **details)
             # TODO
             # check if details are still properly formed, even for a HW Raid config.
             # For instance:
@@ -745,7 +775,8 @@ class OVHModule:
             # TODO : for raid 0, it's assumed that a simple list of disks would be sufficient
             try:
                 result = self.client.post(
-                    '/me/installationTemplate/%s/partitionScheme/%s/hardwareRaid' % (conf['templateName'], conf['partitionScheme']),
+                    '/me/installationTemplate/%s/partitionScheme/%s/hardwareRaid' % (
+                        conf['templateName'], conf['partitionScheme']),
                     disks=disks,
                     mode=conf['raidMode'],
                     name=conf['partitionScheme'],
@@ -759,7 +790,8 @@ class OVHModule:
             try:
                 if 'raid' in partition.keys():
                     self.client.post(
-                        '/me/installationTemplate/%s/partitionScheme/%s/partition' % (conf['templateName'], conf['partitionScheme']),
+                        '/me/installationTemplate/%s/partitionScheme/%s/partition' % (
+                            conf['templateName'], conf['partitionScheme']),
                         filesystem=partition['filesystem'],
                         mountpoint=partition['mountpoint'],
                         raid=partition['raid'],
@@ -768,7 +800,8 @@ class OVHModule:
                         type=partition['type'])
                 else:
                     self.client.post(
-                        '/me/installationTemplate/%s/partitionScheme/%s/partition' % (conf['templateName'], conf['partitionScheme']),
+                        '/me/installationTemplate/%s/partitionScheme/%s/partition' % (
+                            conf['templateName'], conf['partitionScheme']),
                         filesystem=partition['filesystem'],
                         mountpoint=partition['mountpoint'],
                         size=partition['size'],
@@ -777,7 +810,8 @@ class OVHModule:
             except APIError as api_error:
                 return self.fail("Failed to call OVH API: {0}".format(api_error))
         try:
-            self.client.post('/me/installationTemplate/%s/checkIntegrity' % conf['templateName'])
+            self.client.post(
+                '/me/installationTemplate/%s/checkIntegrity' % conf['templateName'])
         except APIError as api_error:
             return self.fail("Failed to call OVH API: {0}".format(api_error))
 
@@ -871,7 +905,8 @@ class OVHModule:
                 if new_server['dedicatedServer'] == name:
                     try:
                         result = self.client.delete(
-                            '/vrack/%s/dedicatedServerInterface/%s' % (vrack, new_server['dedicatedServerInterface'])
+                            '/vrack/%s/dedicatedServerInterface/%s' % (
+                                vrack, new_server['dedicatedServerInterface'])
                         )
                         return self.succeed(None, contents=result, changed=True)
                     except APIError as api_error:
