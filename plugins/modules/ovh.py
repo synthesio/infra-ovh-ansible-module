@@ -699,7 +699,7 @@ class OVHModule:
         with open(src, 'r') as stream:
             content = yaml.load(stream)
         conf = {}
-        for i, j in content.iteritems():
+        for i, j in content.items():
             conf[i] = j
 
         if state == 'absent':
