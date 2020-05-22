@@ -9,8 +9,8 @@ from ansible.utils.display import Display
 from ansible import constants
 
 ANSIBLE_METADATA = {
-    'metadata_version': '3.1',
-    'supported_by': 'community',
+    'metadata_version': '4',
+    'supported_by': 'synthesio',
     'status': ['preview']
 }
 
@@ -19,17 +19,17 @@ DOCUMENTATION = '''
 module: ovh
 short_description: Manage OVH API for DNS, monitoring and Dedicated servers
 description:
-    - Add/Delete/Modify entries in OVH DNS
-    - Add reverse on OVH dedicated servers
-    - Install new dedicated servers from a template (both OVH and personal ones)
-    - Create a personal OVH template from a file (with h/w and s/w raid support)
-    - Monitor installation status on dedicated servers
-    - Add/Remove OVH Monitoring on dedicated servers
-    - Add/Remove a dedicated server from a OVH vrack
-    - Restart a dedicate server on debian rescue or disk
-    - List dedicated servers, personal templates
-    - Create a template from a yml file inside an ansible role (see README)
-    - Terminate a dedicated server (doesn't confirm termination, has to be done manually)
+    - Add/Delete/Modify entries in OVH DNS.
+    - Add reverse on OVH dedicated servers.
+    - Install new dedicated servers from a template (both OVH and personal ones).
+    - Create a personal OVH template from a file (with h/w and s/w raid support).
+    - Monitor installation status on dedicated servers.
+    - Add/Remove OVH Monitoring on dedicated servers.
+    - Add/Remove a dedicated server from a OVH vrack.
+    - Restart a dedicate server on debian rescue or disk.
+    - List dedicated servers, personal templates.
+    - Create a template from a yml file inside an ansible role (see README).
+    - Terminate a dedicated server (doesn't confirm termination, has to be done manually).
 author: Francois BRUNHES and Synthesio SRE Team
 notes:
     - "In /etc/ovh.conf (on host that executes module), you should add your
@@ -72,19 +72,21 @@ options:
               or deleted
     service:
         required: true
-        choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install', 'status', 'list', 'template', 'terminate']
+        choices: ['boot', 'dns', 'vrack', 'reverse', 'monitoring', 'install',
+                  'status', 'list', 'template', 'terminate', 'get_mac']
         description:
-            - Determines the service you want to use in the module
-              boot, change the bootid and can reboot the dedicated server
-              dns, manage A entries in your domain
-              vrack, add or remove a dedicated from a vrack
-              reverse, add/modify a reverse on a dedicated server
-              monitoring, add/removing a dedicated server from OVH monitoring
-              install, install from a template
-              status, used after install to know install status
-              list, get a list of personal dedicated servers, personal templates
-              template, create/delete an ovh template from a yaml file
-              terminate, give back a dedicated server to OVH
+            - Determines the service you want to use in the module.
+            - boot, change the bootid and can reboot the dedicated server.
+            - dns, manage A entries in your domain.
+            - vrack, add or remove a dedicated from a vrack.
+            - reverse, add/modify a reverse on a dedicated server.
+            - monitoring, add/removing a dedicated server from OVH monitoring.
+            - install, install from a template.
+            - status, used after install to know install status.
+            - list, get a list of personal dedicated servers, personal templates.
+            - template, create/delete an ovh template from a yaml file.
+            - terminate, give back a dedicated server to OVH.
+            - get_mac, get mac address.
     domain:
         required: false
         default: None
@@ -136,7 +138,7 @@ options:
         required: false
         default: 10
         description:
-            - seconds between to tries
+            - seconds between two tries
 '''  # noqa
 
 EXAMPLES = '''
