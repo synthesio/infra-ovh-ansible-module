@@ -2,17 +2,24 @@
 
 ## Requirements
 
-- python 2.7+ or 3.5+
+- python 2.7+ or 3.7+
 - python-ovh: https://github.com/ovh/python-ovh
-- Only tested with Ansible 2.7+
+- Only tested with Ansible 2.9+
+
+## Collection
+
+This repository must be a submodule of ansible:
+```
+git submodule add -f https://github.com/synthesio/infra-ovh-ansible-module collections/ansible_collections/synthesio/ovh
+```
 
 ## Configuration
 
-In your `ansible.cfg` :
+The collection path must be defined in your `ansible.cfg` :
 
 ```
-action_plugin_path=path/to/ovh/plugins/action
-module_path=path/to/ovh/plugins/modules
+[defaults]
+collections_paths = collections/
 ```
 
 In `/etc/ovh.conf`:
@@ -49,10 +56,14 @@ This allows you to store them in Ansible vault or to use any lookup plugin to re
 
 Here are a few examples of what you can do. Please read the module for everything else, it most probably does it!
 
+As this is a collection now you must declare it in each task.
+
 ### Add a host into the vrack
 
 ```
 - name: Add server to vrack
+  collections:
+  - synthesio.ovh
   ovh:
     service: vrack
     vrack: "{{ vrackid }}"
@@ -63,6 +74,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Add server IP to DNS
+  collections:
+  - synthesio.ovh
   ovh:
     service: dns
     domain: "example.com"
@@ -70,6 +83,8 @@ Here are a few examples of what you can do. Please read the module for everythin
     name: "internal.bar"
 
 - name: Refresh domain
+  collections:
+  - synthesio.ovh
   ovh:
     service: dns
     name: refresh
@@ -80,6 +95,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Change Reverse on server
+  collections:
+  - synthesio.ovh
   ovh:
     service: reverse
     name: "internal.bar"
@@ -92,6 +109,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Install the dedicated server
+  collections:
+  - synthesio.ovh
   ovh:
     service: install
     name: "{{ ovhname }}"
@@ -99,6 +118,8 @@ Here are a few examples of what you can do. Please read the module for everythin
     template: "{{ template }}"
   
 - name: Wait until installation is finished
+  collections:
+  - synthesio.ovh
   ovh:
     service: status
     name: "{{ ovhname }}"
@@ -112,6 +133,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ```
 - name: Remove ovh monitoring when necessary
+  collections:
+  - synthesio.ovh
   ovh:
     service: monitoring
     name: "{{ ovhname }}"
@@ -121,12 +144,16 @@ Here are a few examples of what you can do. Please read the module for everythin
 ### List dedicated servers or personal templates
 ```
 - name: Get list of servers
+  collections:
+  - synthesio.ovh
   ovh:
     service: list
     name: dedicated
   register: servers
 
 - name: Get list of personal templates
+  collections:
+  - synthesio.ovh
   ovh:
     service: list
     name: templates
@@ -136,12 +163,16 @@ Here are a few examples of what you can do. Please read the module for everythin
 ### Create a new template and install it
 ```
 - name: check if template is already installed
+  collections:
+  - synthesio.ovh
   ovh:
     service: list
     name: templates
   register: templates
 
 - name: Create template
+  collections:
+  - synthesio.ovh
   ovh:
     service: template
     name: custom_template
@@ -150,6 +181,8 @@ Here are a few examples of what you can do. Please read the module for everythin
   when: template not in templates.objects
 
 - name: Install the dedicated server
+  collections:
+  - synthesio.ovh
   ovh:
     service: install
     name: "{{ ovhname }}"
@@ -159,6 +192,8 @@ Here are a few examples of what you can do. Please read the module for everythin
     use_distrib_kernel: True
 
 - name: Delete template
+  collections:
+  - synthesio.ovh
   ovh:
     service: template
     name: "custom_template"
@@ -167,6 +202,8 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 ### Terminate the rent of an ovh dedicated server
 - name: terminate server
+  collections:
+  - synthesio.ovh
   ovh:
     service: terminate
     name: "{{ ovhname }}"

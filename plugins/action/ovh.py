@@ -47,8 +47,8 @@ class ActionModule(ActionBase):
         elif service is None:
             result['msg'] = "service is required"
         elif any(credentials_in_args) and not all(credentials_in_args):
-            result['msg'] = "missing credentials. Either none or all the following (%s)" % ", ".join(
-                credentials)
+            result['msg'] = "missing credentials. Either none or all the following ({})".format(  # noqa
+                ", ".join(credentials))
         else:
             del result['failed']
         if result.get('failed'):
@@ -73,7 +73,8 @@ class ActionModule(ActionBase):
             )
         )
         module_return = self._execute_module(
-            module_name='ovh', module_args=new_module_args, task_vars=task_vars)
+            module_name='ovh', module_args=new_module_args,
+            task_vars=task_vars)
         module_executed = True
 
         if module_return.get('failed'):
