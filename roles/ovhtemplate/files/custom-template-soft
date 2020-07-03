@@ -1,7 +1,7 @@
 
 templateName: 'testscratch'
-baseTemplateName: 'debian8_64'
-customHostname: 'foo.bar.com'
+baseTemplateName: 'debian10_64'
+customHostname: 'foo.example.com'
 postInstallationScriptLink: ''
 postInstallationScriptReturn: ''
 sshKeyName: 'foobar'
