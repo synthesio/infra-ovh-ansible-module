@@ -2,9 +2,11 @@
 
 ## Requirements
 
-- python 2.7+ or 3.7+
-- python-ovh: https://github.com/ovh/python-ovh
-- Only tested with Ansible 2.9+
+Only tested with:
+
+- Python 3.7
+- Python-ovh 0.5: https://github.com/ovh/python-ovh
+- Ansible 2.9
 
 ## Collection
 
