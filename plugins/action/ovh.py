@@ -73,7 +73,7 @@ class ActionModule(ActionBase):
             )
         )
         module_return = self._execute_module(
-            module_name='ovh', module_args=new_module_args,
+            module_name='synthesio.ovh.ovh', module_args=new_module_args,
             task_vars=task_vars)
         module_executed = True
 
