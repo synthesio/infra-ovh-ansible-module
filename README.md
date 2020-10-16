@@ -76,18 +76,14 @@ As this is a collection now you must declare it in each task.
 
 ```
 - name: Add server IP to DNS
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: dns
     domain: "example.com"
     ip: "192.0.2.1"
     name: "internal.bar"
 
 - name: Refresh domain
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: dns
     name: refresh
     domain: "example.com"
@@ -97,9 +93,7 @@ As this is a collection now you must declare it in each task.
 
 ```
 - name: Change Reverse on server
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: reverse
     name: "internal.bar"
     ip: "192.0.2.1"
@@ -111,18 +105,14 @@ As this is a collection now you must declare it in each task.
 
 ```
 - name: Install the dedicated server
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: install
     name: "{{ ovhname }}"
     hostname: "{{ inventory_hostname }}.{{ domain }}"
     template: "{{ template }}"
   
 - name: Wait until installation is finished
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: status
     name: "{{ ovhname }}"
     max_retry: 150
@@ -135,9 +125,7 @@ As this is a collection now you must declare it in each task.
 
 ```
 - name: Remove ovh monitoring when necessary
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: monitoring
     name: "{{ ovhname }}"
     state: "absent"
@@ -146,17 +134,13 @@ As this is a collection now you must declare it in each task.
 ### List dedicated servers or personal templates
 ```
 - name: Get list of servers
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: list
     name: dedicated
   register: servers
 
 - name: Get list of personal templates
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: list
     name: templates
   register: templates
@@ -165,17 +149,13 @@ As this is a collection now you must declare it in each task.
 ### Create a new template and install it
 ```
 - name: check if template is already installed
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: list
     name: templates
   register: templates
 
 - name: Create template
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: template
     name: custom_template
     state: "present"
@@ -183,9 +163,7 @@ As this is a collection now you must declare it in each task.
   when: template not in templates.objects
 
 - name: Install the dedicated server
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: install
     name: "{{ ovhname }}"
     hostname: "internal.bar.example.com"
@@ -194,9 +172,7 @@ As this is a collection now you must declare it in each task.
     use_distrib_kernel: True
 
 - name: Delete template
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: template
     name: "custom_template"
     state: "absent"
@@ -204,9 +180,7 @@ As this is a collection now you must declare it in each task.
 
 ### Terminate the rent of an ovh dedicated server
 - name: terminate server
-  collections:
-  - synthesio.ovh
-  ovh:
+  synthesio.ovh.ovh:
     service: terminate
     name: "{{ ovhname }}"
 ```
