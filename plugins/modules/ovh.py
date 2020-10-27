@@ -139,6 +139,11 @@ options:
         default: None
         description:
             - Indicate the URL where your postinstall customisation script is located
+    post_installation_script_return:
+        required: false
+        default: None
+        description:
+            - Indicate the string returned by your postinstall customisation script on successful execution
     sleep:
         required: false
         default: 10
@@ -217,6 +222,7 @@ def main():
         force_reboot=dict(required=False, type='bool', default=False),
         template=dict(required=False, default=None),
         post_installation_script_link=dict(required=False, default=None),
+        post_installation_script_return=dict(required=False, default=None),
         hostname=dict(required=False, default=None),
         max_retry=dict(required=False, default='10'),
         sleep=dict(required=False, default='10'),
@@ -507,6 +513,7 @@ class OVHModule:
         ssh_key_name = self.params.get('ssh_key_name')
         use_distrib_kernel = self.params.get('use_distrib_kernel', False)
         post_installation_script_link = self.params['post_installation_script_link']
+        post_installation_script_return = self.params['post_installation_script_return']
 
         if not name:
             return self.fail(
@@ -554,6 +561,9 @@ class OVHModule:
 
         if post_installation_script_link:
             details['details']['postInstallationScriptLink'] = post_installation_script_link
+
+        if post_installation_script_return:
+            details['details']['postInstallationScriptReturn'] = post_installation_script_return
 
         try:
             self.client.post(
