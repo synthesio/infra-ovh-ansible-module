@@ -134,6 +134,11 @@ options:
         default: 10
         description:
             - Number of tries for the operation to suceed. OVH api can be lazy.
+    post_installation_script_link:
+        required: false
+        default: None
+        description:
+            - Indicate the URL where your postinstall customisation script is located
     sleep:
         required: false
         default: 10
@@ -211,6 +216,7 @@ def main():
         boot=dict(default='harddisk', choices=['harddisk', 'rescue']),
         force_reboot=dict(required=False, type='bool', default=False),
         template=dict(required=False, default=None),
+        post_installation_script_link=dict(required=False, default=None),
         hostname=dict(required=False, default=None),
         max_retry=dict(required=False, default='10'),
         sleep=dict(required=False, default='10'),
@@ -500,6 +506,7 @@ class OVHModule:
         hostname = self.params['hostname']
         ssh_key_name = self.params.get('ssh_key_name')
         use_distrib_kernel = self.params.get('use_distrib_kernel', False)
+        post_installation_script_link = self.params['post_installation_script_link']
 
         if not name:
             return self.fail(
@@ -544,6 +551,10 @@ class OVHModule:
                     "Failed to call OVH API: {0}".format(api_error))
         if use_distrib_kernel:
             details['details']['useDistribKernel'] = use_distrib_kernel
+
+        if post_installation_script_link:
+            details['details']['postInstallationScriptLink'] = post_installation_script_link
+
         try:
             self.client.post(
                 '/dedicated/server/%s/install/start' % name, **details)
