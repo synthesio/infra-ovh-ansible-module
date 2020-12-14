@@ -2,7 +2,7 @@
 
 ## Requirements
 
-Only tested with:
+Tested with:
 
 - Python 3.7
 - Python-ovh 0.5: https://github.com/ovh/python-ovh
@@ -14,6 +14,35 @@ This repository must be a submodule of ansible:
 ```
 git submodule add -f https://github.com/synthesio/infra-ovh-ansible-module collections/ansible_collections/synthesio/ovh
 ```
+
+This collection provide the following modules:
+```
+dedicated_server_boot
+dedicated_server_install
+dedicated_server_install_wait
+dedicated_server_monitoring
+dedicated_server_networkinterfacecontroller
+dedicated_server_terminate
+dedicated_server_vrack
+domain
+installation_template
+ip_reverse
+public_cloud_instance_info
+public_cloud_instance
+```
+
+You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
+
+An example for a custom template to install a dedicated server is present in `roles/ovhtemplate` folder
+
+
+## Upgrade from synthesio.ovh < 5.0.0
+
+Before version 5.0.0 of the collection, every tasks were in the same `synthesio.ovh.ovh` module !
+Since 5.0.0, the collection has been rewrite, it is now split to multiples modules, which is easier to maintain, enhance, debug,
+and more ansible collection compliant.
+
+If you are upgrading from 4.0.0 and earlier, please read the doc and update your playbooks !
 
 ## Configuration
 
@@ -42,14 +71,13 @@ Alternatively, you can provide credentials as module attributes:
 
 ```
 - name: Add server to vrack
-  ovh:
+  synthesio.ovh.dedicated_server_vrack:
     endpoint: "ovh-eu"
     application_key: "<YOUR APPLICATION KEY>"
     application_secret: "<YOUR APPLICATIOM SECRET>"
     consumer_key: "<YOUR CONSUMER KEY>"
-    service: vrack
     vrack: "{{ vrackid }}"
-    name: "{{ ovhname }}"
+    serviceName: "{{ ovhname }}"
 ```
 
 This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
@@ -60,129 +88,56 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 As this is a collection now you must declare it in each task.
 
+
+A few examples:
+
 ### Add a host into the vrack
 
 ```
 - name: Add server to vrack
-  collections:
-  - synthesio.ovh
-  ovh:
-    service: vrack
+  synthesio.ovh.dedicated_server_vrack:
+    serviceName: vrack
     vrack: "{{ vrackid }}"
-    name: "{{ ovhname }}"
 ```
 
 ### Add a DNS entry for `internal.bar.example.com`
 
 ```
 - name: Add server IP to DNS
-  synthesio.ovh.ovh:
-    service: dns
+  synthesio.ovh.domain:
     domain: "example.com"
     ip: "192.0.2.1"
     name: "internal.bar"
 
-- name: Refresh domain
-  synthesio.ovh.ovh:
-    service: dns
-    name: refresh
-    domain: "example.com"
 ```
 
-### Change a server reverse
+### Install a new dedicated server
 
 ```
-- name: Change Reverse on server
-  synthesio.ovh.ovh:
-    service: reverse
-    name: "internal.bar"
-    ip: "192.0.2.1"
-    domain: "example.com"
-```
+- Install new dedicated server
+  synthesio.ovh.dedicated_server_install:
+    serviceName: "ns12345.ip-1-2-3.eu"
+    hostname: "server01.example.net"
+    template: "debian10_64"
 
-
-### Install a server from a template
-
-```
-- name: Install the dedicated server
-  synthesio.ovh.ovh:
-    service: install
-    name: "{{ ovhname }}"
-    hostname: "{{ inventory_hostname }}.{{ domain }}"
-    template: "{{ template }}"
-  
-- name: Wait until installation is finished
-  synthesio.ovh.ovh:
-    service: status
-    name: "{{ ovhname }}"
-    max_retry: 150
-    sleep: 10
-  delegate_to: localhost
+- Wait for the server installation
+  synthesio.ovh.dedicated_server_wait:
+    serviceName: "ns12345.ip-1-2-3.eu"
+    max_retry: "240"
+    sleep: "10"
 
 ```
 
-### Enable / disable OVH monitoring
+### Install a public cloud instance
 
 ```
-- name: Remove ovh monitoring when necessary
-  synthesio.ovh.ovh:
-    service: monitoring
-    name: "{{ ovhname }}"
-    state: "absent"
+- name: run a public cloud installation
+  synthesio.ovh.ovh_public_cloud_instance:
+    name: "{{ inventory_hostname }}"
+    sshKeyId: "{{ sshKeyId }}"
+    serviceName: "{{ serviceName }}"
+    networks: "{{ networks }}"
+    flavorId: "{{ flavorId }}"
+    region: "{{ region }}"
+    imageId: "{{ imageId }}"
 ```
-
-### List dedicated servers or personal templates
-```
-- name: Get list of servers
-  synthesio.ovh.ovh:
-    service: list
-    name: dedicated
-  register: servers
-
-- name: Get list of personal templates
-  synthesio.ovh.ovh:
-    service: list
-    name: templates
-  register: templates
-```
-
-### Create a new template and install it
-```
-- name: check if template is already installed
-  synthesio.ovh.ovh:
-    service: list
-    name: templates
-  register: templates
-
-- name: Create template
-  synthesio.ovh.ovh:
-    service: template
-    name: custom_template
-    state: "present"
-  run_once: yes
-  when: template not in templates.objects
-
-- name: Install the dedicated server
-  synthesio.ovh.ovh:
-    service: install
-    name: "{{ ovhname }}"
-    hostname: "internal.bar.example.com"
-    template: "custom_template"
-    ssh_key_name: "My Key"
-    use_distrib_kernel: True
-
-- name: Delete template
-  synthesio.ovh.ovh:
-    service: template
-    name: "custom_template"
-    state: "absent"
-  run_once: yes
-
-### Terminate the rent of an ovh dedicated server
-- name: terminate server
-  synthesio.ovh.ovh:
-    service: terminate
-    name: "{{ ovhname }}"
-```
-
-An example of yml template is in roles directory of this repository
