@@ -38,8 +38,8 @@ An example for a custom template to install a dedicated server is present in `ro
 
 ## Upgrade from synthesio.ovh < 5.0.0
 
-Before version 5.0.0 of the collection, every tasks were in the same `synthesio.ovh.ovh` module !
-Since 5.0.0, the collection has been rewrite, it is now split to multiples modules, which is easier to maintain, enhance, debug,
+Before version 5.0.0 of the collection, all tasks were in the same `synthesio.ovh.ovh` module !
+Since 5.0.0, the collection has been rewritten: it is now split into multiple modules, which is easier to maintain, enhance, debug,
 and more ansible collection compliant.
 
 If you are upgrading from 4.0.0 and earlier, please read the doc and update your playbooks !
