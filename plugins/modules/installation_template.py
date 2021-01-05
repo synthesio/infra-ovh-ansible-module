@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -20,7 +22,7 @@ options:
     state:
         required: false
         description: The state absent or present
-    serviceName:
+    service_name:
         required: false
         description: The server name (used for hardware raid profils)
 '''
@@ -52,7 +54,7 @@ def run_module():
     module_args.update(dict(
         template=dict(required=True),
         state=dict(choices=["present", "absent"], default="present"),
-        serviceName=dict(required=False, default=None)
+        service_name=dict(required=False, default=None)
     ))
 
     module = AnsibleModule(
@@ -63,7 +65,7 @@ def run_module():
 
     template = module.params['template']
     state = module.params['state']
-    serviceName = module.params['serviceName']
+    service_name = module.params['service_name']
     # The action plugin resolve the "template" variable path. So we need to re-extract the basename
     src_template = os.path.basename(template)
 
@@ -138,7 +140,7 @@ def run_module():
     if conf['isHardwareRaid']:
         try:
             result = client.get(
-                '/dedicated/server/%s/install/hardwareRaidProfile' % serviceName
+                '/dedicated/server/%s/install/hardwareRaidProfile' % service_name
             )
         except APIError as api_error:
             module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))

@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 
 from ansible.module_utils.basic import AnsibleModule
@@ -15,10 +17,10 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
-        description: The serviceName
-    instanceId:
+        description: The service_name
+    instance_id:
         required: true
         description: The instance uuid
 
@@ -26,8 +28,8 @@ options:
 
 EXAMPLES = '''
 synthesio.ovh.public_cloud_instance_info:
-  instanceId: "{{ instanceId }}"
-  serviceName: "{{ serviceName }}"
+  instance_id: "{{ instance_id }}"
+  service_name: "{{ service_name }}"
 delegate_to: localhost
 '''
 
@@ -45,8 +47,8 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
-        instanceId=dict(required=True)
+        service_name=dict(required=True),
+        instance_id=dict(required=True)
     ))
 
     module = AnsibleModule(
@@ -55,10 +57,10 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    instanceId = module.params['instanceId']
-    serviceName = module.params['serviceName']
+    instance_id = module.params['instance_id']
+    service_name = module.params['service_name']
     try:
-        result = client.get('/cloud/project/%s/instance/%s' % (serviceName, instanceId))
+        result = client.get('/cloud/project/%s/instance/%s' % (service_name, instance_id))
 
         module.exit_json(changed=False, **result)
     except APIError as api_error:

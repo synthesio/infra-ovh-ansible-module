@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -14,7 +16,7 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
         description: Ovh name of the server
     hostname:
@@ -28,7 +30,7 @@ options:
 
 EXAMPLES = '''
 synthesio.ovh.dedicated_server_install:
-    serviceName: "ns12345.ip-1-2-3.eu"
+    service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
     template: "debian10_64"
 delegate_to: localhost
@@ -48,7 +50,7 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
+        service_name=dict(required=True),
         hostname=dict(required=True),
         template=dict(required=True)
     ))
@@ -59,17 +61,17 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    serviceName = module.params['serviceName']
+    service_name = module.params['service_name']
     hostname = module.params['hostname']
     template = module.params['template']
 
     if module.check_mode:
-        module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(serviceName, hostname, template),
+        module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
                          changed=True)
 
     try:
         compatible_templates = client.get(
-            '/dedicated/server/%s/install/compatibleTemplates' % serviceName
+            '/dedicated/server/%s/install/compatibleTemplates' % service_name
         )
         if template not in compatible_templates["ovh"] and template not in compatible_templates["personal"]:
             module.fail_json(msg="{} doesn't exist in compatibles templates".format(template))
@@ -83,9 +85,9 @@ def run_module():
 
     try:
         client.post(
-            '/dedicated/server/%s/install/start' % serviceName, **details, templateName=template)
+            '/dedicated/server/%s/install/start' % service_name, **details, templateName=template)
 
-        module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(serviceName, hostname, template), changed=True)
+        module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(service_name, hostname, template), changed=True)
 
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))

@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -14,7 +16,7 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
         description:
         - The server to manage
@@ -32,7 +34,7 @@ options:
 
 EXAMPLES = '''
 synthesio.ovh.dedicated_server_vrack
-  serviceName: {{ serviceName }}
+  service_name: {{ service_name }}
   vrack: "{{ vrack }}"
 delegate_to: localhost
 '''
@@ -51,7 +53,7 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
+        service_name=dict(required=True),
         vrack=dict(required=True),
         state=dict(choices=['present', 'absent'], default='present')
     ))
@@ -62,14 +64,14 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    serviceName = module.params['serviceName']
+    service_name = module.params['service_name']
     vrack = module.params['vrack']
     state = module.params['state']
 
     if module.check_mode:
         module.exit_json(
             msg="{} succesfully {} on {} - (dry run mode)".format(
-                serviceName, state, vrack),
+                service_name, state, vrack),
             changed=True)
 
     try:
@@ -81,7 +83,7 @@ def run_module():
         # The /vrack/%s/allowedServices route used previously
         # has availability and scaling problems.
         result = client.get(
-            '/dedicated/server/%s/virtualNetworkInterface' % serviceName,
+            '/dedicated/server/%s/virtualNetworkInterface' % service_name,
             mode='vrack'
         )
     except APIError as api_error:
@@ -106,11 +108,11 @@ def run_module():
                 msg="Failed to call OVH API: {0}".format(api_error))
 
         for new_server in is_already_registered:
-            if new_server['dedicatedServer'] == serviceName:
+            if new_server['dedicatedServer'] == service_name:
                 if state == 'present':
                     module.exit_json(
                         msg="{} is already registered on new {}".format(
-                            serviceName, vrack),
+                            service_name, vrack),
                         changed=False)
                 if state == 'absent':
                     try:
@@ -120,7 +122,7 @@ def run_module():
                         )
                         module.exit_json(
                             msg="{} has been deleted from new {}".format(
-                                serviceName, vrack),
+                                service_name, vrack),
                             changed=True)
                     except APIError as api_error:
                         module.fail_json(
@@ -129,7 +131,7 @@ def run_module():
         if state == 'absent':
             module.exit_json(
                 msg="{} is not present on new {}, don't remove it".format(
-                    serviceName, vrack),
+                    service_name, vrack),
                 changed=False)
 
         # Server is not yet registered on vrack, go for it
@@ -138,7 +140,7 @@ def run_module():
                 '/vrack/%s/dedicatedServerInterface' % vrack,
                 dedicatedServerInterface=server_interface
             )
-            module.exit_json(msg="{} has been added to new {}".format(serviceName, vrack), changed=True)
+            module.exit_json(msg="{} has been added to new {}".format(service_name, vrack), changed=True)
         except APIError as api_error:
             return module.fail_json(
                 msg="Failed to call OVH API: {0}".format(api_error))
@@ -154,20 +156,20 @@ def run_module():
                 msg="Failed to call OVH API: {0}".format(api_error))
 
         for old_server in is_already_registered:
-            if old_server == serviceName:
+            if old_server == service_name:
                 if state == 'present':
                     module.exit_json(
                         msg="{} is already registered on old {}".format(
-                            serviceName, vrack),
+                            service_name, vrack),
                         changed=False)
                 if state == 'absent':
                     try:
                         result = client.delete(
-                            '/vrack/%s/dedicatedServer/%s' % (vrack, serviceName)
+                            '/vrack/%s/dedicatedServer/%s' % (vrack, service_name)
                         )
                         module.exit_json(
                             msg="{} has been deleted from old {}".format(
-                                serviceName, vrack),
+                                service_name, vrack),
                             changed=True)
                     except APIError as api_error:
                         module.fail_json(
@@ -176,16 +178,16 @@ def run_module():
         if state == 'absent':
             module.exit_json(
                 msg="{} is not present on old {}, don't remove it".format(
-                    serviceName, vrack),
+                    service_name, vrack),
                 changed=False)
 
         # Server is not yet registered on vrack, go for it
         try:
             client.post(
                 '/vrack/%s/dedicatedServer' % vrack,
-                dedicatedServer=serviceName
+                dedicatedServer=service_name
             )
-            module.exit_json(msg="{} has been added to old {}".format(serviceName, vrack), changed=True)
+            module.exit_json(msg="{} has been added to old {}".format(service_name, vrack), changed=True)
         except APIError as api_error:
             return module.fail_json(
                 msg="Failed to call OVH API: {0}".format(api_error))

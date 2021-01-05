@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -15,7 +17,7 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
         description: Ovh name of the server
     max_retry:
@@ -31,7 +33,7 @@ options:
 
 EXAMPLES = '''
 synthesio.ovh.dedicated_server_wait:
-    serviceName: "ns12345.ip-1-2-3.eu"
+    service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"
     sleep: "10"
 delegate_to: localhost
@@ -56,7 +58,7 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
+        service_name=dict(required=True),
         max_retry=dict(required=False, default=240),
         sleep=dict(required=False, default=10)
     ))
@@ -67,7 +69,7 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    serviceName = module.params['serviceName']
+    service_name = module.params['service_name']
     max_retry = module.params['max_retry']
     sleep = module.params['sleep']
 
@@ -81,10 +83,10 @@ def run_module():
                         (i, int(max_retry)), constants.COLOR_VERBOSE)
         try:
             tasklist = client.get(
-                '/dedicated/server/%s/task' % serviceName,
+                '/dedicated/server/%s/task' % service_name,
                 function='reinstallServer')
             result = client.get(
-                '/dedicated/server/%s/task/%s' % (serviceName, max(tasklist)))
+                '/dedicated/server/%s/task/%s' % (service_name, max(tasklist)))
         except APIError as api_error:
             return module.fail_jsonl(msg="Failed to call OVH API: {0}".format(api_error))
 
@@ -94,7 +96,7 @@ def run_module():
             module.exit_json(msg="{}: {}".format(result['status'], message), changed=False)
 
         progress_status = client.get(
-            '/dedicated/server/%s/install/status' % serviceName
+            '/dedicated/server/%s/install/status' % service_name
         )
         if 'message' in progress_status and progress_status['message'] == 'Server is not being installed or reinstalled at the moment':
             message = progress_status['message']

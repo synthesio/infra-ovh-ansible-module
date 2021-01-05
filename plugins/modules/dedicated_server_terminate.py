@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -15,14 +17,14 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
-        description: The serviceName to terminate
+        description: The service_name to terminate
 '''
 
 EXAMPLES = '''
 synthesio.ovh.dedicated_server_terminate:
-  serviceName: "{{ serviceName }}"
+  service_name: "{{ service_name }}"
 delegate_to: localhost
 '''
 
@@ -40,7 +42,7 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
+        service_name=dict(required=True),
     ))
 
     module = AnsibleModule(
@@ -49,17 +51,17 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    serviceName = module.params['serviceName']
+    service_name = module.params['service_name']
 
     if module.check_mode:
-        module.exit_json(changed=True, msg="Terminate {} is done, please confirm via the email sent - (dry run mode)".format(serviceName))
+        module.exit_json(changed=True, msg="Terminate {} is done, please confirm via the email sent - (dry run mode)".format(service_name))
 
     try:
         client.post(
-            '/dedicated/server/%s/terminate' % serviceName
+            '/dedicated/server/%s/terminate' % service_name
         )
 
-        module.exit_json(changed=False, msg="Terminate {} is done, please confirm via the email sent".format(serviceName))
+        module.exit_json(changed=False, msg="Terminate {} is done, please confirm via the email sent".format(service_name))
 
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
