@@ -77,7 +77,7 @@ Alternatively, you can provide credentials as module attributes:
     application_secret: "<YOUR APPLICATIOM SECRET>"
     consumer_key: "<YOUR CONSUMER KEY>"
     vrack: "{{ vrackid }}"
-    serviceName: "{{ ovhname }}"
+    service_name: "{{ ovhname }}"
 ```
 
 This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
@@ -96,7 +96,7 @@ A few examples:
 ```
 - name: Add server to vrack
   synthesio.ovh.dedicated_server_vrack:
-    serviceName: vrack
+    service_name: "{{ ovhname }}"
     vrack: "{{ vrackid }}"
 ```
 
@@ -116,13 +116,13 @@ A few examples:
 ```
 - Install new dedicated server
   synthesio.ovh.dedicated_server_install:
-    serviceName: "ns12345.ip-1-2-3.eu"
+    service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
     template: "debian10_64"
 
 - Wait for the server installation
   synthesio.ovh.dedicated_server_wait:
-    serviceName: "ns12345.ip-1-2-3.eu"
+    service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"
     sleep: "10"
 
@@ -134,10 +134,10 @@ A few examples:
 - name: run a public cloud installation
   synthesio.ovh.ovh_public_cloud_instance:
     name: "{{ inventory_hostname }}"
-    sshKeyId: "{{ sshKeyId }}"
-    serviceName: "{{ serviceName }}"
+    ssh_key_id: "{{ ssh_key_id }}"
+    service_name: "{{ service_name }}"
     networks: "{{ networks }}"
-    flavorId: "{{ flavorId }}"
+    flavor_id: "{{ flavor_id }}"
     region: "{{ region }}"
-    imageId: "{{ imageId }}"
+    image_id: "{{ image_id }}"
 ```

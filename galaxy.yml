@@ -1,5 +1,3 @@
-### REQUIRED
-
 # The namespace of the collection. This can be a company/brand/organization or product namespace under which all
 # content lives. May only contain alphanumeric lowercase characters and underscores. Namespaces cannot start with
 # underscores or numbers and cannot contain consecutive underscores
@@ -9,7 +7,7 @@ namespace: synthesio
 name: ovh
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 5.0.0
+version: 5.1.0
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -17,22 +15,18 @@ readme: README.md
 # A list of the collection's content authors. Can be just the name or in the format 'Full Name <email> (url)
 # @nicks:irc/im.site#channel'
 authors:
-- Synthesio SRE team <sre@synthesio.com>
-
-
-### OPTIONAL but strongly recommended
+  - Synthesio SRE team <sre@synthesio.com>
 
 # A short summary description of the collection
-description: An Ansible module to talk with OVH API.
+description: An Ansible collection to talk with OVH API.
 
 # Either a single license or a list of licenses for content inside of a collection. Ansible Galaxy currently only
 # accepts L(SPDX,https://spdx.org/licenses/) licenses. This key is mutually exclusive with 'license_file'
-license:
-- Copyright (c) 2016 - 2020 Synthesio
+#license:
 
 # The path to the license file for the collection. This path is relative to the root of the collection. This key is
 # mutually exclusive with 'license'
-license_file: 'LICENCE'
+license_file: 'LICENSE'
 
 # A list of tags you want to associate with the collection for indexing/searching. A tag name has the same character
 # requirements as 'namespace' and 'name'

@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -14,10 +16,10 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
-        description: The serviceName
-    linkType:
+        description: The service_name
+    link_type:
         required: true
         description: The link type, public or private (vrack)
 
@@ -25,8 +27,8 @@ options:
 
 EXAMPLES = '''
 synthesio.ovh.dedicated_server_networkinterfacecontroller:
-  linkType: "private"
-  serviceName: "{{ serviceName }}"
+  link_type: "private"
+  service_name: "{{ service_name }}"
 delegate_to: localhost
 '''
 
@@ -44,8 +46,8 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
-        linkType=dict(required=True)
+        service_name=dict(required=True),
+        link_type=dict(required=True)
     ))
 
     module = AnsibleModule(
@@ -54,10 +56,10 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    linkType = module.params['linkType']
-    serviceName = module.params['serviceName']
+    link_type = module.params['link_type']
+    service_name = module.params['service_name']
     try:
-        result = client.get('/dedicated/server/%s/networkInterfaceController?linkType=%s' % (serviceName, linkType))
+        result = client.get('/dedicated/server/%s/networkInterfaceController?linkType=%s' % (service_name, link_type))
 
         module.exit_json(changed=False, msg=result)
     except APIError as api_error:

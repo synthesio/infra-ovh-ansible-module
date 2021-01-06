@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 
 from ansible.module_utils.basic import AnsibleModule
@@ -21,10 +23,10 @@ options:
     sshKeyId:
         required: false
         description: The sshKey Id to add
-    flavorId:
+    flavor_id:
         required: false
         description: The id of the commercial name
-    imageId:
+    image_id:
         required: false
         description: The id of the image/os to deploy on the instance
     region:
@@ -34,7 +36,7 @@ options:
         required: false
         description: The network configuration.
           Can be the full array of the network configuration
-    instanceId:
+    instance_id:
         required: false
         description: the instance uuid
 
@@ -45,11 +47,11 @@ EXAMPLES = '''
   synthesio.ovh.ovh_public_cloud_instance:
     name: "{{ inventory_hostname }}"
     sshKeyId: "{{ sshKeyId }}"
-    serviceName: "{{ serviceName }}"
+    service_name: "{{ service_name }}"
     networks: "{{ networks }}"
-    flavorId: "{{ flavorId }}"
+    flavor_id: "{{ flavor_id }}"
     region: "{{ region }}"
-    imageId: "{{ imageId }}"
+    image_id: "{{ image_id }}"
   delegate_to: localhost
   register: instance_metadata
 '''
@@ -69,9 +71,9 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         name=dict(required=True),
-        flavorId=dict(required=True),
-        imageId=dict(required=False, default=None),
-        serviceName=dict(required=True),
+        flavor_id=dict(required=True),
+        image_id=dict(required=False, default=None),
+        service_name=dict(required=True),
         sshKeyId=dict(required=False, default=None),
         region=dict(required=True),
         networks=dict(required=False, default=[], type="list"),
@@ -84,23 +86,23 @@ def run_module():
     client = ovh_api_connect(module)
 
     name = module.params['name']
-    serviceName = module.params['serviceName']
-    flavorId = module.params['flavorId']
-    imageId = module.params['imageId']
-    serviceName = module.params['serviceName']
-    sshKeyId = module.params['sshKeyId']
+    service_name = module.params['service_name']
+    flavor_id = module.params['flavor_id']
+    image_id = module.params['image_id']
+    service_name = module.params['service_name']
+    ssh_key_id = module.params['ssh_key_id']
     region = module.params['region']
     networks = module.params['networks']
 
     try:
-        result = client.post('/cloud/project/%s/instance' % serviceName,
-                             flavorId=flavorId,
-                             imageId=imageId,
+        result = client.post('/cloud/project/%s/instance' % service_name,
+                             flavorId=flavor_id,
+                             imageId=image_id,
                              monthlyBilling=False,
                              name=name,
                              region=region,
                              networks=networks,
-                             sshKeyId=sshKeyId
+                             sshKeyId=ssh_key_id
                              )
 
         module.exit_json(changed=True, **result)

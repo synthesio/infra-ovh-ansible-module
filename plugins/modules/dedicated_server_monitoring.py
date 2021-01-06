@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -14,9 +16,9 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    serviceName:
+    service_name:
         required: true
-        description: The serviceName
+        description: The service_name
     state:
         required: true
         description: Indicate the desired state of monitoring
@@ -28,7 +30,7 @@ options:
 
 EXAMPLES = '''
 synthesio.ovh.dedicated_server_monitoring:
-    serviceName: "{{ serviceName }}"
+    service_name: "{{ service_name }}"
     state: "present"
 delegate_to: localhost
 '''
@@ -47,7 +49,7 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        serviceName=dict(required=True),
+        service_name=dict(required=True),
         state=dict(choices=['present', 'absent'], default='present')
     ))
 
@@ -57,7 +59,7 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    serviceName = module.params['serviceName']
+    service_name = module.params['service_name']
     state = module.params['state']
 
     if state == 'present':
@@ -66,17 +68,17 @@ def run_module():
         monitoring_bool = False
 
     if module.check_mode:
-        module.exit_json(msg="Monitoring is now {} for {} - (dry run mode)".format(state, serviceName), changed=True)
+        module.exit_json(msg="Monitoring is now {} for {} - (dry run mode)".format(state, service_name), changed=True)
 
     try:
-        server_state = client.get('/dedicated/server/%s' % serviceName)
+        server_state = client.get('/dedicated/server/%s' % service_name)
 
         if server_state['monitoring'] == monitoring_bool:
-            module.exit_json(msg="Monitoring is already {} on {}".format(state, serviceName), changed=False)
+            module.exit_json(msg="Monitoring is already {} on {}".format(state, service_name), changed=False)
 
-        client.put('/dedicated/server/%s' % serviceName, monitoring=monitoring_bool)
+        client.put('/dedicated/server/%s' % service_name, monitoring=monitoring_bool)
 
-        module.exit_json(msg="Monitoring is now {} on {}".format(state, serviceName), changed=True)
+        module.exit_json(msg="Monitoring is now {} on {}".format(state, service_name), changed=True)
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error), changed=False)
 
