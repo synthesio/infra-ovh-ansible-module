@@ -20,7 +20,7 @@ options:
     name:
         required: false
         description: The instance name to create
-    sshKeyId:
+    ssh_key_id:
         required: false
         description: The sshKey Id to add
     flavor_id:
@@ -46,7 +46,7 @@ EXAMPLES = '''
 - name: run installation
   synthesio.ovh.ovh_public_cloud_instance:
     name: "{{ inventory_hostname }}"
-    sshKeyId: "{{ sshKeyId }}"
+    ssh_key_id: "{{ sshKeyId }}"
     service_name: "{{ service_name }}"
     networks: "{{ networks }}"
     flavor_id: "{{ flavor_id }}"
@@ -74,7 +74,7 @@ def run_module():
         flavor_id=dict(required=True),
         image_id=dict(required=False, default=None),
         service_name=dict(required=True),
-        sshKeyId=dict(required=False, default=None),
+        ssh_key_id=dict(required=False, default=None),
         region=dict(required=True),
         networks=dict(required=False, default=[], type="list"),
     ))
