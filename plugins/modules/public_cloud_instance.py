@@ -18,27 +18,31 @@ requirements:
     - ovh >= 0.5.0
 options:
     name:
-        required: false
+        required: true
         description: The instance name to create
     ssh_key_id:
         required: false
         description: The sshKey Id to add
     flavor_id:
-        required: false
+        required: true
         description: The id of the commercial name
     image_id:
-        required: false
+        required: true
         description: The id of the image/os to deploy on the instance
     region:
-        required: false
+        required: true
         description: The region where to deploy the instance
     networks:
         required: false
         description: The network configuration.
           Can be the full array of the network configuration
-    instance_id:
+    service_name:
+        required: true
+        description: The service_name
+    monthly_billing:
         required: false
-        description: the instance uuid
+        default: false
+        description: Enable or not the monthly billing
 
 '''
 
@@ -72,11 +76,12 @@ def run_module():
     module_args.update(dict(
         name=dict(required=True),
         flavor_id=dict(required=True),
-        image_id=dict(required=False, default=None),
+        image_id=dict(required=True),
         service_name=dict(required=True),
         ssh_key_id=dict(required=False, default=None),
         region=dict(required=True),
         networks=dict(required=False, default=[], type="list"),
+        monthly_billing=dict(required=False, default=False, type="bool")
     ))
 
     module = AnsibleModule(
@@ -93,12 +98,13 @@ def run_module():
     ssh_key_id = module.params['ssh_key_id']
     region = module.params['region']
     networks = module.params['networks']
+    monthly_billing = module.params['monthly_billing']
 
     try:
         result = client.post('/cloud/project/%s/instance' % service_name,
                              flavorId=flavor_id,
                              imageId=image_id,
-                             monthlyBilling=False,
+                             monthlyBilling=monthly_billing,
                              name=name,
                              region=region,
                              networks=networks,
