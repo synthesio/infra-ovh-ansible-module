@@ -153,22 +153,29 @@ def run_module():
         # All the disks in this controller are taken to form one raid
         # In the future, some of our servers could have more than one controller
         # so we will have to adapt this code
-        disks = result['controllers'][0]['disks'][0]['names']
+        
+        diskarray = result['controllers'][0]['disks'][0]['names']
+        disks = []
 
-        # if 'raid 1' in conf['raidMode']:
-        # TODO : create a list of disks like this
-        # {'disks': ['[c0:d0,c0:d1]',
-        #            '[c0:d2,c0:d3]',
-        #            '[c0:d4,c0:d5]',
-        #            '[c0:d6,c0:d7]',
-        #            '[c0:d8,c0:d9]',
-        #            '[c0:d10,c0:d11]'],
-        #  'mode': 'raid10',
-        #  'name': 'managerHardRaid',
-        #  'step': 1}
-        # else:
-        # TODO : for raid 0, it's assumed that
-        # a simple list of disks would be sufficient
+        if conf['raidMode'] == 'raid1':
+            # In raid1, we take the first two disks in the disk array
+            disks = [ diskarray[0],diskarray[1] ]
+
+        elif conf['raidMode'] == 'raid10' or conf['raidMode'] == 'raid60' :
+            # In raid10 or raid60, we configure two disk groups
+            groups = [[],[]]
+            for i in range ( len(diskarray) ):
+                if i <  (len(diskarray) // 2):
+                    groups[0].append(diskarray[i])
+                else:
+                    groups[1].append(diskarray[i])
+            sep = ','
+            disks = [ '[' + (sep.join(groups[0])) + ']' , '[' + (sep.join(groups[1])) + ']' ]
+
+        else:
+            # Fallback condition: pass every disk in the array (will be applied for raid0)
+           disks = diskarray
+
         try:
             result = client.post(
                 '/me/installationTemplate/%s/partitionScheme/%s/hardwareRaid' % (
