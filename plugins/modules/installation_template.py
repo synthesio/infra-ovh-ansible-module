@@ -190,6 +190,8 @@ def run_module():
     partition = {}
     for k in conf['partition']:
         partition = ast.literal_eval(k)
+        if 'volumeName' not in partition.keys():
+            partition['volumeName'] = ""
         try:
             if 'raid' in partition.keys():
                 client.post(
@@ -200,7 +202,9 @@ def run_module():
                     raid=partition['raid'],
                     size=partition['size'],
                     step=partition['step'],
-                    type=partition['type'])
+                    type=partition['type'],
+                    volumeName=partition['volumeName'],
+                    )
             else:
                 client.post(
                     '/me/installationTemplate/%s/partitionScheme/%s/partition' % (
@@ -209,7 +213,9 @@ def run_module():
                     mountpoint=partition['mountpoint'],
                     size=partition['size'],
                     step=partition['step'],
-                    type=partition['type'])
+                    type=partition['type'],
+                    volumeName=partition['volumeName'],
+                    )
         except APIError as api_error:
             module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
     try:
