@@ -17,15 +17,18 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    ip:
+    value:
         required: true
-        description: The ip
+        description: The value of the record
     name:
         required: true
         description: The name to create/update/delete
     domain:
         required: true
         description: The domain to modify
+    record_type:
+        required: false
+        description: The DNS record type (A, CNAME, TXT, AAAA, NS, SRV, MX)
     state:
         required: false
         description: The state
@@ -35,7 +38,7 @@ options:
 EXAMPLES = '''
 synthesio.ovh.domain:
   domain: example.com
-  ip: "192.2.0.1"
+  value: "192.2.0.1"
   name: "www"
   state: "present"
 delegate_to: localhost
@@ -55,9 +58,10 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        ip=dict(required=True),
+        value=dict(required=True),
         name=dict(required=True),
         domain=dict(required=True),
+        record_type=dict(choices=['A', 'CNAME', 'TXT', 'AAAA', 'NS', 'SRV', 'MX'], default='A'),
         state=dict(choices=['present', 'absent'], default='present')
     ))
 
@@ -67,18 +71,19 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    ip = module.params['ip']
+    value = module.params['value']
     domain = module.params['domain']
     name = module.params['name']
+    record_type = module.params['record_type']
     state = module.params['state']
 
     if module.check_mode:
-        module.exit_json(msg="{} set to {}.{} ! - (dry run mode)".format(ip, name, domain))
+        module.exit_json(msg="{} set to {}.{} ! - (dry run mode)".format(value, name, domain))
 
     try:
         existing_records = client.get(
             '/domain/zone/%s/record' % domain,
-            fieldType='A',
+            fieldType=record_type,
             subDomain=name
         )
     except APIError as api_error:
@@ -94,7 +99,7 @@ def run_module():
                         '/domain/zone/%s/record/%s' % (domain, ind)
                     )
                     # The record already exist
-                    if record['subDomain'] == name and record['target'] == ip:
+                    if record['subDomain'] == name and record['target'] == value:
                         module.exit_json(
                             msg="{} is already registered on domain {}".format(name, domain),
                             changed=False)
@@ -114,14 +119,14 @@ def run_module():
                 client.put(
                     '/domain/zone/%s/record/%s' % (domain, ind),
                     subDomain=name,
-                    target=ip
+                    target=value
                 )
                 # we must run a refresh on zone after modifications
                 client.post(
                     '/domain/zone/%s/refresh' % domain
                 )
                 module.exit_json(
-                    msg="Record has been updated: {} is now targeting {}.{}".format(ip, name, domain), changed=True)
+                    msg="{} record has been updated: {} is now targeting {}.{}".format(record_type, value, name, domain), changed=True)
             except APIError as api_error:
                 module.fail_json(
                     msg="Failed to call OVH API: {0}".format(api_error))
@@ -130,15 +135,15 @@ def run_module():
         try:
             client.post(
                 '/domain/zone/%s/record' % domain,
-                fieldType='A',
+                fieldType=record_type,
                 subDomain=name,
-                target=ip
+                target=value
             )
             # we must run a refresh on zone after modifications
             client.post(
                 '/domain/zone/%s/refresh' % domain
             )
-            module.exit_json(msg="{} is now targeting {}.{}".format(ip, name, domain),
+            module.exit_json(msg="{} is now targeting {}.{}".format(value, name, domain),
                              changed=True)
         except APIError as api_error:
             module.fail_json(
@@ -164,8 +169,8 @@ def run_module():
                 client.post(
                     '/domain/zone/%s/refresh' % domain
                 )
-                record_deleted.append("%s IN A %s" % (
-                    record.get('subDomain'), record.get('target')))
+                record_deleted.append("%s IN %s %s" % (
+                    record.get('subDomain'), record.get('fieldType'), record.get('target')))
             module.exit_json(
                 msg=",".join(record_deleted) + " successfuly deleted from domain {}".format(domain),
                 changed=True)
