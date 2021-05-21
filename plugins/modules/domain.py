@@ -17,15 +17,18 @@ author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
-    ip:
+    value:
         required: true
-        description: The ip
+        description: The ip or other record value
     name:
         required: true
         description: The name to create/update/delete
     domain:
         required: true
         description: The domain to modify
+    record_type:
+        required: false
+        description: The DNS record type (A, CNAME)
     state:
         required: false
         description: The state
@@ -35,7 +38,7 @@ options:
 EXAMPLES = '''
 synthesio.ovh.domain:
   domain: example.com
-  ip: "192.2.0.1"
+  value: "192.2.0.1"
   name: "www"
   state: "present"
 delegate_to: localhost
@@ -58,7 +61,7 @@ def run_module():
         value=dict(required=True),
         name=dict(required=True),
         domain=dict(required=True),
-        record_type=dict(choices=['A', 'CNAME'], default='a'),
+        record_type=dict(choices=['A', 'CNAME'], default='A'),
         state=dict(choices=['present', 'absent'], default='present')
     ))
 
@@ -68,7 +71,7 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    value = module.params['ip']
+    value = module.params['value']
     domain = module.params['domain']
     name = module.params['name']
     record_type = module.params['record_type']
