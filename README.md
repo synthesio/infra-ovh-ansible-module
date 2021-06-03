@@ -106,7 +106,8 @@ A few examples:
 - name: Add server IP to DNS
   synthesio.ovh.domain:
     domain: "example.com"
-    ip: "192.0.2.1"
+    value: "192.0.2.1"
+    record_type: "A"
     name: "internal.bar"
 
 ```
