@@ -18,6 +18,8 @@ git submodule add -f https://github.com/synthesio/infra-ovh-ansible-module colle
 This collection provide the following modules:
 ```
 dedicated_server_boot
+dedicated_server_display_name
+dedicated_server_info
 dedicated_server_install
 dedicated_server_install_wait
 dedicated_server_monitoring
@@ -27,8 +29,11 @@ dedicated_server_vrack
 domain
 installation_template
 ip_reverse
+public_cloud_flavorid_info
+public_cloud_imageid_info
 public_cloud_instance_info
 public_cloud_instance
+public_cloud_monthly_billing
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
