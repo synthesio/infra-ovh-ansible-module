@@ -19,30 +19,44 @@ requirements:
 options:
     name:
         required: true
-        description: The instance name to create
+        description:
+            - The instance name to create
     ssh_key_id:
         required: false
-        description: The sshKey Id to add
+        description:
+            - The sshKey Id to add
     flavor_id:
         required: true
-        description: The id of the commercial name
+        description:
+            - The id of the commercial name
     image_id:
         required: true
-        description: The id of the image/os to deploy on the instance
+        description:
+            - The id of the image/os to deploy on the instance
     region:
         required: true
-        description: The region where to deploy the instance
+        description:
+            - The region where to deploy the instance
     networks:
         required: false
-        description: The network configuration.
-          Can be the full array of the network configuration
+        description:
+            - The network configuration.
+            - Can be the full array of the network configuration
     service_name:
         required: true
-        description: The service_name
+        description:
+            - The service_name
     monthly_billing:
         required: false
         default: false
-        description: Enable or not the monthly billing
+        description:
+            - Enable or not the monthly billing
+    force_reinstall:
+        required: false
+        default: false
+        choices: ['true','false']
+        description:
+            - When you want force reinstallation of instance already existing
 
 '''
 
@@ -81,7 +95,8 @@ def run_module():
         ssh_key_id=dict(required=False, default=None),
         region=dict(required=True),
         networks=dict(required=False, default=[], type="list"),
-        monthly_billing=dict(required=False, default=False, type="bool")
+        monthly_billing=dict(required=False, default=False, type="bool"),
+        force_reinstall=dict(required=False, default=False, type="bool")
     ))
 
     module = AnsibleModule(
@@ -94,11 +109,38 @@ def run_module():
     service_name = module.params['service_name']
     flavor_id = module.params['flavor_id']
     image_id = module.params['image_id']
-    service_name = module.params['service_name']
     ssh_key_id = module.params['ssh_key_id']
     region = module.params['region']
     networks = module.params['networks']
     monthly_billing = module.params['monthly_billing']
+    force_reinstall = module.params['force_reinstall']
+
+
+    try:
+        instances_list = client.get('/cloud/project/%s/instance' % (service_name),
+                            region=region
+                            )
+    except APIError as api_error:
+        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    for i in instances_list:
+
+        if i['name'] == name:
+            instance_id = i['id']
+            instance_details = client.get('/cloud/project/%s/instance/%s' % (service_name,instance_id ))
+
+            if force_reinstall:
+                try:
+                    reinstall_result = client.post(
+                                        '/cloud/project/%s/instance/%s/reinstall' % (service_name,instance_id),
+                                         imageId=image_id
+                                         )
+                    module.exit_json(changed=True, **reinstall_result)
+
+                except APIError as api_error:
+                    module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+            module.exit_json(changed=False,**instance_details)
 
     try:
         result = client.post('/cloud/project/%s/instance' % service_name,
