@@ -10,7 +10,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: public_cloud_imageid_info
-short_description: Get image id based on human name
+short_description: Get image id based on human name in ovh repository or in own snapshot repository
 description:
     - Get imageid based on human name ("Debian 10", "Ubuntu 21.04","Centos 8", etc)
     - The imageid change between region
@@ -70,19 +70,29 @@ def run_module():
     name = module.params['name']
     region = module.params['region']
 
+    # Get images list
     try:
-        result = client.get('/cloud/project/%s/image' % (service_name),
+        result_image = client.get('/cloud/project/%s/image' % (service_name),
                             region=region
                             )
-        for i in result:
-            if i['name'] == name:
-                image_id = i['id']
-                module.exit_json(changed=False, id=image_id)
-
-        module.fail_json(msg="Image {} not found in {}".format(name, region), changed=False)
-
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    # Get snapshot list
+    try:
+        result_snapshot = client.get('/cloud/project/%s/snapshot' % (service_name),
+                            region=region
+                            )
+    except APIError as api_error:
+        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    # search in both list
+    for i in (result_image + result_snapshot):
+        if i['name'] == name:
+            image_id = i['id']
+            module.exit_json(changed=False, id=image_id)
+
+    module.fail_json(msg="Image {} not found in {}".format(name, region), changed=False)
 
 
 def main():
