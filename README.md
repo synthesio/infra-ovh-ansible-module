@@ -126,7 +126,7 @@ A few examples:
     hostname: "server01.example.net"
     template: "debian10_64"
 
-- name= Wait for the server installation
+- name: Wait for the server installation
   synthesio.ovh.dedicated_server_install_wait:
     service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"
