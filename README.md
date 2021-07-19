@@ -120,14 +120,14 @@ A few examples:
 ### Install a new dedicated server
 
 ```
-- Install new dedicated server
+- name: Install new dedicated server
   synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
     template: "debian10_64"
 
-- Wait for the server installation
-  synthesio.ovh.dedicated_server_wait:
+- name= Wait for the server installation
+  synthesio.ovh.dedicated_server_install_wait:
     service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"
     sleep: "10"
