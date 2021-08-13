@@ -94,11 +94,23 @@ def run_module():
     service_name = module.params['service_name']
     flavor_id = module.params['flavor_id']
     image_id = module.params['image_id']
-    service_name = module.params['service_name']
     ssh_key_id = module.params['ssh_key_id']
     region = module.params['region']
     networks = module.params['networks']
     monthly_billing = module.params['monthly_billing']
+
+    try:
+        instances_list = client.get('/cloud/project/%s/instance' % (service_name),
+                            region=region
+                            )
+    except APIError as api_error:
+        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    for i in instances_list:
+        if i['name'] == name:
+            instance_id = i['id']
+            instance_details = client.get('/cloud/project/%s/instance/%s' % (service_name,instance_id ))
+            module.exit_json(changed=False,**instance_details)
 
     try:
         result = client.post('/cloud/project/%s/instance' % service_name,
