@@ -28,7 +28,7 @@ options:
 
 EXAMPLES = '''
 - name: Enable monthly billing
-  synthesio.ovh.ovh_public_cloud_monthly_billing:
+  synthesio.ovh.public_cloud_monthly_billing:
     service_name: "{{ service_name }}"
     instance_id: "{{ instance_id }}"
   delegate_to: localhost
@@ -67,7 +67,7 @@ def run_module():
 
     try:
         result = client.get('/cloud/project/%s/instance/%s' % (service_name, instance_id))
-        if result['monthlyBilling']['status'] == "ok":
+        if result['monthlyBilling'] is not None and result['monthlyBilling']['status'] == "ok":
             module.exit_json(changed=False, msg="Monthly billing already enabled")
 
         result = client.post('/cloud/project/%s/instance/%s/activeMonthlyBilling' % (service_name, instance_id))
