@@ -73,16 +73,14 @@ def run_module():
     # Get images list
     try:
         result_image = client.get('/cloud/project/%s/image' % (service_name),
-                            region=region
-                            )
+                                  region=region)
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
     # Get snapshot list
     try:
         result_snapshot = client.get('/cloud/project/%s/snapshot' % (service_name),
-                            region=region
-                            )
+                                     region=region)
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
