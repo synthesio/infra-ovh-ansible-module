@@ -36,11 +36,12 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.dedicated_server_boot:
-  service_name: {{ service_name }}
-  boot: "rescue"
-  force_reboot: "true"
-delegate_to: localhost
+- name: Change the bootid of a dedicated server to rescue
+  synthesio.ovh.dedicated_server_boot:
+    service_name: {{ service_name }}
+    boot: "rescue"
+    force_reboot: "true"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

@@ -36,12 +36,13 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.domain:
-  domain: example.com
-  value: "192.2.0.1"
-  name: "www"
-  state: "present"
-delegate_to: localhost
+- name: Ensure entry is in dns
+  synthesio.ovh.domain:
+    domain: example.com
+    value: "192.2.0.1"
+    name: "www"
+    state: "present"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

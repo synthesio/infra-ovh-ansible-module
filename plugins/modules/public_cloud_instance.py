@@ -10,7 +10,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: public_cloud_instance
-short_description: Manage OVH API for public cloud instance creatikon
+short_description: Manage OVH API for public cloud instance creation
 description:
     - This module manage the creation of an instance on OVH public Cloud
 author: Synthesio SRE Team
@@ -47,8 +47,8 @@ options:
 '''
 
 EXAMPLES = '''
-- name: run installation
-  synthesio.ovh.ovh_public_cloud_instance:
+- name: "Launch install of {{ inventory_hostname }} on public cloud OVH"
+  synthesio.ovh.public_cloud_instance:
     name: "{{ inventory_hostname }}"
     ssh_key_id: "{{ sshKeyId }}"
     service_name: "{{ service_name }}"
