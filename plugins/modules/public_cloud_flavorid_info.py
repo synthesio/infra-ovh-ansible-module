@@ -32,8 +32,8 @@ options:
 '''
 
 EXAMPLES = '''
-- name: run installation
-  synthesio.ovh.public_cloud_flavorid_info
+- name: Get flavor id
+  synthesio.ovh.public_cloud_flavorid_info:
     service_name: "{{ service_name }}"
     region: "GRA7"
     name: "t1-45"
