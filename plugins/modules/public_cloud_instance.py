@@ -140,7 +140,7 @@ def run_module():
                 except APIError as api_error:
                     module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
-            module.exit_json(changed=False,**instance_details)
+            module.exit_json(changed=False, msg="Instance {} [{}] in region {} is already installed".format(name, instance_id, region), **instance_details)
 
     try:
         result = client.post('/cloud/project/%s/instance' % service_name,
