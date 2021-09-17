@@ -29,10 +29,11 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.dedicated_server_monitoring:
+- name: "Enable monitoring on dedicated server {{ service_name }}"
+  synthesio.ovh.dedicated_server_monitoring:
     service_name: "{{ service_name }}"
     state: "present"
-delegate_to: localhost
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

@@ -28,7 +28,7 @@ options:
         description: The domain to modify
     record_type:
         required: false
-        description: The DNS record type (A, CNAME, TXT, AAAA, NS, SRV, MX)
+        description: The DNS record type (A, CNAME, TXT, AAAA, NS, SRV, MX, , DKIM, SPF)
     state:
         required: false
         description: The state
@@ -36,12 +36,13 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.domain:
-  domain: example.com
-  value: "192.2.0.1"
-  name: "www"
-  state: "present"
-delegate_to: localhost
+- name: Ensure entry is in dns
+  synthesio.ovh.domain:
+    domain: example.com
+    value: "192.2.0.1"
+    name: "www"
+    state: "present"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''
@@ -61,7 +62,7 @@ def run_module():
         value=dict(required=True),
         name=dict(required=True),
         domain=dict(required=True),
-        record_type=dict(choices=['A', 'CNAME', 'TXT', 'AAAA', 'NS', 'SRV', 'MX'], default='A'),
+        record_type=dict(choices=['A', 'CNAME', 'TXT', 'AAAA', 'NS', 'SRV', 'MX', 'DKIM', 'SPF'], default='A'),
         state=dict(choices=['present', 'absent'], default='present')
     ))
 

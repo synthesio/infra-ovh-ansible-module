@@ -25,6 +25,9 @@ options:
     template:
         required: true
         description: template to use to spawn the server
+    sshKeyName:
+        required: false
+        description: sshkey to deploy
 
 '''
 
@@ -52,7 +55,8 @@ def run_module():
     module_args.update(dict(
         service_name=dict(required=True),
         hostname=dict(required=True),
-        template=dict(required=True)
+        template=dict(required=True),
+        sshKeyName=dict(required=False, default=None)
     ))
 
     module = AnsibleModule(
@@ -64,6 +68,7 @@ def run_module():
     service_name = module.params['service_name']
     hostname = module.params['hostname']
     template = module.params['template']
+    sshKeyName = module.params['sshKeyName']
 
     if module.check_mode:
         module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
@@ -80,7 +85,8 @@ def run_module():
 
     details = {"details":
                {"language": "en",
-                "customHostname": hostname}
+                "customHostname": hostname,
+                "sshKeyName": sshKeyName}
                }
 
     try:

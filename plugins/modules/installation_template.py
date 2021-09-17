@@ -28,10 +28,11 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.installation_template:
-  template: "custom-debian-raid10-soft"
-  state: "present"
-delegate_to: localhost
+- name: Manage installation templates for dedicated servers
+  synthesio.ovh.installation_template:
+    template: "custom-debian-raid10-soft"
+    state: "present"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

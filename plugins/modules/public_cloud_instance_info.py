@@ -10,7 +10,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: public_cloud_instance_info
-short_description: Retrieve all info for a OVH public cloud instnace
+short_description: Retrieve all info for a OVH public cloud instance
 description:
     - This module retrieves all info from a OVH public cloud instance
 author: Synthesio SRE Team
