@@ -78,6 +78,10 @@ def run_module():
     volume_id = module.params['volume_id']
     state = module.params['state']
 
+    if module.check_mode:
+        module.exit_json(msg="Ensure volume id {} is {} on instance id {} - (dry run mode)".format(volume_id, state, instance_id),
+                         changed=True)
+
     volume_details = {}
     try:
         volume_details = client.get('/cloud/project/%s/volume/%s' % (service_name, volume_id))

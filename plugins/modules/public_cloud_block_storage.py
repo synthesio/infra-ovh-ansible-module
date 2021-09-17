@@ -55,7 +55,7 @@ options:
 '''
 
 EXAMPLES = r'''
-- name: Ensure Volume is affected to instance
+- name: Ensure Volume is state wanted
   synthesio.ovh.public_cloud_block_storage:
     service_name: "{{ service_name }}"
     region: "{{ region }}"
@@ -108,6 +108,10 @@ def run_module():
     image_id = module.params['image_id']
     snapshot_id = module.params['snapshot_id']
     state = module.params['state']
+
+    if module.check_mode:
+        module.exit_json(msg="Ensure volume {} is {} - (dry run mode)".format(name, state),
+                         changed=True)
 
     volume_list = []
     try:
