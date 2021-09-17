@@ -85,7 +85,7 @@ def run_module():
             try:
                 client.delete('/me/installationTemplate/%s' % src_template)
 
-                module.exit_json(msg="Template {} succesfully deleted".format(src_template, changed=True))
+                module.exit_json(msg="Template {} succesfully deleted".format(src_template), changed=True)
             except APIError as api_error:
                 module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
         else:
@@ -154,28 +154,28 @@ def run_module():
         # All the disks in this controller are taken to form one raid
         # In the future, some of our servers could have more than one controller
         # so we will have to adapt this code
-        
+
         diskarray = result['controllers'][0]['disks'][0]['names']
         disks = []
 
         if conf['raidMode'] == 'raid1':
             # In raid1, we take the first two disks in the disk array
-            disks = [ diskarray[0],diskarray[1] ]
+            disks = [diskarray[0], diskarray[1]]
 
-        elif conf['raidMode'] == 'raid10' or conf['raidMode'] == 'raid60' :
+        elif conf['raidMode'] == 'raid10' or conf['raidMode'] == 'raid60':
             # In raid10 or raid60, we configure two disk groups
-            groups = [[],[]]
-            for i in range ( len(diskarray) ):
-                if i <  (len(diskarray) // 2):
+            groups = [[], []]
+            for i in range(len(diskarray)):
+                if i < (len(diskarray) // 2):
                     groups[0].append(diskarray[i])
                 else:
                     groups[1].append(diskarray[i])
             sep = ','
-            disks = [ '[' + (sep.join(groups[0])) + ']' , '[' + (sep.join(groups[1])) + ']' ]
+            disks = ['[' + (sep.join(groups[0])) + ']', '[' + (sep.join(groups[1])) + ']']
 
         else:
             # Fallback condition: pass every disk in the array (will be applied for raid0)
-           disks = diskarray
+            disks = diskarray
 
         try:
             result = client.post(
@@ -204,8 +204,7 @@ def run_module():
                     size=partition['size'],
                     step=partition['step'],
                     type=partition['type'],
-                    volumeName=partition['volumeName'],
-                    )
+                    volumeName=partition['volumeName'])
             else:
                 client.post(
                     '/me/installationTemplate/%s/partitionScheme/%s/partition' % (
@@ -215,8 +214,7 @@ def run_module():
                     size=partition['size'],
                     step=partition['step'],
                     type=partition['type'],
-                    volumeName=partition['volumeName'],
-                    )
+                    volumeName=partition['volumeName'])
         except APIError as api_error:
             module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
     try:
