@@ -133,6 +133,18 @@ A few examples:
     sleep: "10"
 ```
 
+### Install a new dedicated server with only 2 disks
+
+```yaml
+- Install new dedicated server
+  synthesio.ovh.dedicated_server_install:
+    service_name: "ns12345.ip-1-2-3.eu"
+    hostname: "server01.example.net"
+    template: "debian10_64"
+    soft_raid_devices: "2"
+
+```
+
 ### Install a public cloud instance
 
 ```yaml
