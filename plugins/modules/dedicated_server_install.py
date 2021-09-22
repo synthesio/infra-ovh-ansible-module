@@ -25,9 +25,12 @@ options:
     template:
         required: true
         description: template to use to spawn the server
-    sshKeyName:
+    ssh_key_name:
         required: false
         description: sshkey to deploy
+    soft_raid_devices:
+        required: false
+        description: number of devices in the raid software
 
 '''
 
@@ -36,6 +39,7 @@ synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
     template: "debian10_64"
+    soft_raid_devices: "2"
 delegate_to: localhost
 '''
 
@@ -56,7 +60,8 @@ def run_module():
         service_name=dict(required=True),
         hostname=dict(required=True),
         template=dict(required=True),
-        sshKeyName=dict(required=False, default=None)
+        ssh_key_name=dict(required=False, default=None),
+        soft_raid_devices=dict(required=False, default=None)
     ))
 
     module = AnsibleModule(
@@ -68,7 +73,8 @@ def run_module():
     service_name = module.params['service_name']
     hostname = module.params['hostname']
     template = module.params['template']
-    sshKeyName = module.params['sshKeyName']
+    ssh_key_name = module.params['ssh_key_name']
+    soft_raid_devices = module.params['soft_raid_devices']
 
     if module.check_mode:
         module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
@@ -86,7 +92,8 @@ def run_module():
     details = {"details":
                {"language": "en",
                 "customHostname": hostname,
-                "sshKeyName": sshKeyName}
+                "sshKeyName": ssh_key_name,
+                "softRaidDevices": soft_raid_devices}
                }
 
     try:
