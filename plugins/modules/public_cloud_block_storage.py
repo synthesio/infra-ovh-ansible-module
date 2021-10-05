@@ -14,7 +14,7 @@ module: public_cloud_block_storage
 short_description: Manage OVH API for public cloud volume.
 
 description:
-    - This module manage, volume of an instance on OVH public Cloud.
+    - This module manage volume creation/deletion on OVH public Cloud.
 
 requirements:
     - ovh >= 0.5.0
