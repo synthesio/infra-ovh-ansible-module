@@ -85,7 +85,7 @@ def run_module():
         service_name=dict(required=True),
         region=dict(required=True),
         size=dict(required=True, type="int"),
-        volume_type=dict(required=True, choices=['classic', 'high-speed', 'high-speed-gen2'], default='classic'),
+        volume_type=dict(required=False, choices=['classic', 'high-speed', 'high-speed-gen2'], default='classic'),
         name=dict(required=True),
         description=dict(required=False),
         image_id=dict(required=False),
