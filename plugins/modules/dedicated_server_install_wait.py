@@ -32,7 +32,7 @@ options:
 '''
 
 EXAMPLES = '''
-- name: Wait until the dedicated server installation is done  
+- name: Wait until the dedicated server installation is done
   synthesio.ovh.dedicated_server_install_wait:
     service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"

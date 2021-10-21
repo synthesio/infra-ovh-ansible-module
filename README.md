@@ -6,17 +6,17 @@ Tested with:
 
 - Python 3.7
 - [Python-ovh 0.5](https://github.com/ovh/python-ovh)
-- Ansible 2.9
+- Ansible 2.9+
 
 ## Collection
 
-This repository must be a submodule of ansible:
+This module can be [installed as a collection](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#installing-a-collection-from-a-git-repository)
 
 ```shell
-git submodule add -f https://github.com/synthesio/infra-ovh-ansible-module collections/ansible_collections/synthesio/ovh
+ansible-galaxy collection install git+https://github.com/synthesio/infra-ovh-ansible-module
 ```
 
-This collection provide the following modules:
+This collection provides the following modules:
 
 ```text
 dedicated_server_boot
