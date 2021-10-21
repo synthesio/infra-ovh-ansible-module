@@ -36,6 +36,8 @@ public_cloud_imageid_info
 public_cloud_instance_info
 public_cloud_instance
 public_cloud_monthly_billing
+public_cloud_block_storage_instance
+public_cloud_block_storage
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
