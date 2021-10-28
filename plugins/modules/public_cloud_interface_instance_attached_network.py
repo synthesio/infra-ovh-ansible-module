@@ -10,7 +10,7 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: attach_failover_ip
+module: interface_instance_attached_network
 short_description: Manage OVH API for public cloud attach Vrack
 description:
     - This module manage the attach of an Vrack on OVH instance public Cloud
