@@ -11,9 +11,9 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: attach_failover_ip
-short_description: Manage OVH API for public cloud attach IP fail-over
+short_description: Manage OVH API for public cloud attach Vrack
 description:
-    - This module manage the attach of an IP fail-over on OVH public Cloud
+    - This module manage the attach of an Vrack on OVH instance public Cloud
 author: Article714
 requirements:
     - ovh >= 0.5.0
@@ -30,22 +30,23 @@ options:
         required: true
         description:
             - The id of the project
-    id:
+    networkId:
         required: true
         description:
-            - The id of the IP fail-over
+            - The id of the Vrack
 '''
 
 EXAMPLES = '''
-- name: "Attach an fail-over IP to {{ name }} on public cloud OVH"
-  synthesio.ovh.public_cloud_attach_failover_ip:
+- name: "Attach an Vrack to {{ name }} on public cloud OVH"
+  synthesio.ovh.public_cloud_interface_instance_attached_network:
     name: "{{ name }}"
     service_name: "{{ service_name }}"
-    id: "{{ id }}"
+    networkId: "{{ networkId }}"
     region: "{{ region }}"
 '''
 
 RETURN = ''' # '''
+
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
 
@@ -61,10 +62,10 @@ def run_module():
     module_args.update(dict(
         name=dict(required=True),
         service_name=dict(required=True),
-        id=dict(required=True),
+        networkId=dict(required=True),
         region=dict(required=True),
         instanceId=dict(required=False),
-        attach_ip=dict(required=False, default=True, type="bool")
+        attach_network=dict(required=False, default=True, type="bool")
     ))
 
     module = AnsibleModule(
@@ -75,10 +76,10 @@ def run_module():
 
     name = module.params['name']
     service_name = module.params['service_name']
-    id = module.params['id']
+    networkId = module.params['networkId']
     region = module.params['region']
     instanceId= module.params['instanceId']
-    attach_ip = module.params['attach_ip']
+    attach_network = module.params['attach_network']
 
     try:
         instances_list = client.get('/cloud/project/{0}/instance'.format(service_name,
@@ -91,10 +92,10 @@ def run_module():
         if i['name'] == name:
           instanceId = i['id']
 
-        if attach_ip:
+        if attach_network:
                 try:
                     attach_result = client.post(
-                        '/cloud/project/{0}/ip/failover/{1}/attach'.format(service_name, id), instanceId=instanceId)
+                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instanceId), networkId=networkId)
                     module.exit_json(changed=True, **attach_result)
 
                 except APIError as api_error:
