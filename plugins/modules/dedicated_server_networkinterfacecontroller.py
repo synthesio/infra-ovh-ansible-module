@@ -60,6 +60,11 @@ def run_module():
     service_name = module.params['service_name']
     try:
         result = client.get('/dedicated/server/%s/networkInterfaceController?linkType=%s' % (service_name, link_type))
+        # XXX: This is a hack, would be better to detect what kind of server you are using:
+        # If there is no result, maybe you have a server with multiples network interfaces on the same link (2x public + 2x vrack), like HGR
+        # In this case, retry with public_lag/private_lag linkType
+        if not result:
+            result = client.get('/dedicated/server/%s/networkInterfaceController?linkType=%s_lag' % (service_name, link_type))
 
         module.exit_json(changed=False, msg=result)
     except APIError as api_error:

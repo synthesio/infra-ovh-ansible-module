@@ -86,6 +86,15 @@ def run_module():
             '/dedicated/server/%s/virtualNetworkInterface' % service_name,
             mode='vrack'
         )
+        # XXX: This is a hack, would be better to detect what kind of server you are using:
+        # If there is no result, maybe you have a server with multiples network interfaces on the same link (2x public + 2x vrack), like HGR
+        # In this case, retry with vrack_aggregation mode
+        if not result:
+            result = client.get(
+                '/dedicated/server/%s/virtualNetworkInterface' % service_name,
+                mode='vrack_aggregation'
+            )
+
     except APIError as api_error:
         module.fail_json(
             msg="Failed to call OVH API: {0}".format(api_error))
