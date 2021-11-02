@@ -25,6 +25,10 @@ options:
         required: true
         description:
             - The service_name
+    region:
+        required: true
+        description:
+            - The region where to deploy the instance
 '''
 
 EXAMPLES = '''
@@ -32,6 +36,7 @@ EXAMPLES = '''
   synthesio.ovh.public_cloud_instance_delete:
     name: "{{ inventory_hostname }}"
     service_name: "{{ service_name }}"
+    region: "{{ region }}"
   delegate_to: localhost
 '''
 
@@ -50,7 +55,8 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         name=dict(required=True),
-        service_name=dict(required=True)
+        service_name=dict(required=True),
+        region=dict(required=True)
     ))
 
     module = AnsibleModule(
