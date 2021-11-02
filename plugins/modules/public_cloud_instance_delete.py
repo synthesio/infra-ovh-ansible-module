@@ -13,7 +13,7 @@ module: public_cloud_instance_delete
 short_description: Manage OVH API for public cloud instance deletion
 description:
     - This module manage the deletion of an instance on OVH public Cloud
-author: atrawog@dorgeln.org
+author: Andreas Trawoeger <atrawog@dorgeln.org>
 requirements:
     - ovh >= 0.5.0
 options:
@@ -31,6 +31,7 @@ EXAMPLES = '''
 - name: "Delete instance of {{ inventory_hostname }} on public cloud OVH"
   synthesio.ovh.public_cloud_instance_delete:
     name: "{{ inventory_hostname }}"
+    service_name: "{{ service_name }}"
   delegate_to: localhost
 '''
 
@@ -49,6 +50,7 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         name=dict(required=True),
+        service_name=dict(required=True)
     ))
 
     module = AnsibleModule(
