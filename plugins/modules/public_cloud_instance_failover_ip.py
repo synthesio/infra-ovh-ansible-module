@@ -62,7 +62,7 @@ def run_module():
         service_name=dict(required=True),
         fo_ip_id=dict(required=True),
         instance_id=dict(required=False),
-        state=dict(required=False, default=True, type="bool")
+        state=dict(choices=['present', 'absent'], default='present'),
     ))
 
     module = AnsibleModule(
@@ -100,7 +100,7 @@ def run_module():
             try:
                 
                 attach_result = client.post(
-                    '/cloud/project/{0}/ip/failover/{1}/attach'.format(service_name, fo_ip_id), instance_id=instance_id)
+                    '/cloud/project/{0}/ip/failover/{1}/attach'.format(service_name, fo_ip_id), instanceId=instance_id)
 
                 module.exit_json( msg="Fail-over IP {} has been attached to instance {}/{}".format(
                                     fo_ip_id, instance_id, service_name), result= attach_result, changed=True)
