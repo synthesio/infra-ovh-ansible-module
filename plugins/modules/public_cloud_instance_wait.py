@@ -67,9 +67,9 @@ def run_module():
     module_args.update(dict(
         service_name=dict(required=True),
         instance_id=dict(required=True),
-        max_retry=dict(required=False, default=30),
-        sleep=dict(required=False, default=20),
-        target_status=dict(required=False, default='ACTIVE')
+        max_retry=dict(required=False, default=30,type='int'),
+        sleep=dict(required=False, default=20,type='int'),
+        target_status=dict(required=False, default='ACTIVE',type='str')
     ))
 
     module = AnsibleModule(
@@ -91,8 +91,6 @@ def run_module():
 
     for i in range(1, int(max_retry)):
 
-        display.display("%i out of %i" %
-                        (i, int(max_retry)), constants.COLOR_VERBOSE)
         result = None
         try:
             result = client.get('/cloud/project/%s/instance/%s' % (service_name, instance_id))
