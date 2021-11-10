@@ -31,13 +31,18 @@ dedicated_server_vrack
 domain
 installation_template
 ip_reverse
-public_cloud_flavorid_info
-public_cloud_imageid_info
-public_cloud_instance_info
-public_cloud_instance
-public_cloud_monthly_billing
 public_cloud_block_storage_instance
 public_cloud_block_storage
+public_cloud_failover_ip_info
+public_cloud_flavorid_info
+public_cloud_imageid_info
+public_cloud_instance
+public_cloud_instance_failover_ip
+public_cloud_instance_info
+public_cloud_instance_info_by_name
+public_cloud_instance_vrack
+public_cloud_monthly_billing
+public_cloud_project_info
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`

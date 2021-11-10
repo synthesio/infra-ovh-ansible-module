@@ -19,7 +19,7 @@ requirements:
 options:
     service_name:
         required: true
-        description: The service_name
+        description: The OVH API service_name is  Public cloud project Id
     instance_id:
         required: true
         description: The instance uuid

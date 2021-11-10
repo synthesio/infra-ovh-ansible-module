@@ -9,30 +9,33 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: public_cloud_ip_failover_by_ip
-short_description: Retrieve failover Id from an IP
+module: public_cloud_failover_ip_info
+short_description: Retrieve all info for a OVH failover IP
 description:
-    - This module retrieves failover Id from its IP
-author: Article714 (C. Guychard)
+    - This module retrieves all info from a OVH failover IP
+author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
     service_name:
         required: true
-        description: The service_name
-    ip:
+        description: The OVH API service_name is  Public cloud project Id
+    fo_ip:
         required: true
-        description: IP of failover
+        description:
+            - The fail-over IP
+
 '''
 
 EXAMPLES = '''
-synthesio.ovh.public_cloud_instance_info_by_name:
-    service_name: "{{ service_name }}"
-    ip: "{{ ip }}"
+synthesio.ovh.public_cloud_failover_ip_info:
+  fo_ip: "{{ fo_ip }}"
+  service_name: "{{ service_name }}"
 delegate_to: localhost
+register: fo_ip_id
 '''
 
-RETURN = ''' failover Id '''
+RETURN = ''' # '''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
 
@@ -47,7 +50,7 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         service_name=dict(required=True),
-        ip=dict(required=True)
+        fo_ip=dict(required=True)
     ))
 
     module = AnsibleModule(
@@ -56,23 +59,22 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
+    fo_ip = module.params['fo_ip']
     service_name = module.params['service_name']
-    ip = module.params['ip']
 
+    fo_ips_list = []
     try:
-        instances_list = client.get('/cloud/project/{0}/ip/failover'.format(service_name))
+        fo_ips_list = client.get('/cloud/project/{0}/ip/failover'.format(service_name))
     except APIError as api_error:
-        module.fail_json(msg="Error getting failover list: {0}".format(api_error))
+        module.fail_json(msg="Error getting failover ips list: {0}".format(api_error))
 
-    for inst in instances_list:
+    for ip_data in fo_ips_list:
 
-        failoverId=None
-        if inst['ip'] == ip:
-          failoverId = inst['id']
-        if failoverId:
-            module.exit_json(changed=False, **inst)
+        if ip_data['ip'] == fo_ip:
+            module.exit_json(changed=False, **ip_data)
 
-    module.fail_json(changed=False, msg="Errort: Could not find ip {0}".format(ip))
+    module.fail_json(msg="Error: could not find given fail-over IP {0} in {1}".format(fo_ip, fo_ips_list))
+
 
 def main():
     run_module()
