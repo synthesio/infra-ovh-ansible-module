@@ -30,6 +30,10 @@ options:
         required: true
         description:
             - The id of the private_network
+    static_ip:
+        required: false
+        description:
+            - The static IP to set on new interface
     state:
         required: false
         default: present
@@ -43,6 +47,7 @@ EXAMPLES = '''
     instance_id: "{{ instance_id }}"
     service_name: "{{ service_name }}"
     private_network: "{{ private_network }}"
+    static_ip: "{{ static_ip }}"
     state: present
 '''
 
@@ -64,7 +69,8 @@ def run_module():
         service_name=dict(required=True),
         state=dict(choices=['present', 'absent'], default='present'),
         instance_id=dict(required=True),
-        private_network=dict(required=True)
+        private_network=dict(required=True),
+        static_ip=dict(required=False,default=None)
     ))
 
     module = AnsibleModule(
@@ -75,6 +81,7 @@ def run_module():
 
     service_name = module.params['service_name']
     private_network = module.params['private_network']
+    static_ip = module.params['static_ip']
     instance_id= module.params['instance_id']
     state = module.params['state']
 
@@ -106,9 +113,14 @@ def run_module():
     if state == 'present':
         if not is_already_registered:
             try:
-                attach_result = client.post(
-                    '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network)
-                module.exit_json(changed=True, **attach_result)
+                if static_ip: 
+                    attach_result = client.post(
+                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network, ip=static_ip)
+                    module.exit_json(changed=True, **attach_result)
+                else:
+                    attach_result = client.post(
+                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network)
+                    module.exit_json(changed=True, **attach_result)
 
                 module.exit_json( msg="private_network {} interface has been added to instance {}".format(
                                     private_network, instance_id), result= attach_result, changed=True)
