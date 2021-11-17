@@ -69,7 +69,7 @@ def run_module():
         service_name=dict(required=True),
         state=dict(choices=['present', 'absent'], default='present'),
         instance_id=dict(required=True),
-        private_network=dict(required=True),
+        private_network_id=dict(required=True),
         static_ip=dict(required=False,default=None)
     ))
 
