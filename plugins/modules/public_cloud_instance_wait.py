@@ -14,7 +14,7 @@ short_description: Wait for an Public Cloud Instance to become active
 description:
     - Wait until the public cloud instance installation is done (status == active)
     - Can be used to wait before running next task in your playbook
-author: Synthesio SRE Team
+author: Article714 (M. Piriou, C. Guychard)
 requirements:
     - ovh >= 0.5.0
 options:
@@ -85,7 +85,7 @@ def run_module():
     target_status = module.params['target_status']
 
     is_target_status = False
-    
+
     if module.check_mode:
         module.exit_json(msg="done - (dry run mode)", changed=False)
 
@@ -100,7 +100,7 @@ def run_module():
 
         except APIError as api_error:
             return module.fail_jsonl(msg="Failed to call OVH API: {0}".format(api_error))
-        
+
         if is_target_status:
             module.exit_json(changed=True, **result)
 
