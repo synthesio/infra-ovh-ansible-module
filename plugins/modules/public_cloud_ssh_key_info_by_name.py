@@ -23,7 +23,7 @@ options:
         required: true
         description:
             - The ID of project
-    ssh_name:
+    ssh_key_name:
         required: true
         description:
             - The SSH Keys humane-readable name
@@ -33,7 +33,7 @@ EXAMPLES = '''
 - name: "Get info on OVH public cloud SSH key {{ name }} "
   synthesio.ovh.public_cloud_project_info:
     project_name: "{{ id_project }}"
-    ssh_name: "{{ ssh_name }}"
+    ssh_key_name: "{{ ssh_key_name }}"
 '''
 
 RETURN = ''' All SSH Key information '''
@@ -51,7 +51,7 @@ except ImportError:
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        ssh_name=dict(required=True),
+        ssh_key_name=dict(required=True),
         service_name=dict(required=True)
     ))
 
@@ -61,7 +61,7 @@ def run_module():
     )
     client = ovh_api_connect(module)
 
-    ssh_name = module.params['ssh_name']
+    ssh_key_name = module.params['ssh_key_name']
     service_name = module.params['service_name']
 
 
@@ -73,10 +73,10 @@ def run_module():
 
     for ssh_data in key_ssh_list:
 
-        if ssh_data['name'] == ssh_name:
+        if ssh_data['name'] == ssh_key_name:
             module.exit_json(changed=False, **ssh_data)
 
-    module.fail_json(msg="Error: could not find given SSH Key name {0} in {1}".format(ssh_name, key_ssh_list))
+    module.fail_json(msg="Error: could not find given SSH Key name {0} in {1}".format(ssh_key_name, key_ssh_list))
 
 
 
