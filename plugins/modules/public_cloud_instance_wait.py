@@ -49,11 +49,7 @@ delegate_to: localhost
 RETURN = ''' # '''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-from ansible.utils.display import Display
-from ansible import constants
 import time
-
-display = Display()
 
 try:
     from ovh.exceptions import APIError
@@ -67,9 +63,9 @@ def run_module():
     module_args.update(dict(
         service_name=dict(required=True),
         instance_id=dict(required=True),
-        max_retry=dict(required=False, default=30,type='int'),
-        sleep=dict(required=False, default=20,type='int'),
-        target_status=dict(required=False, default='ACTIVE',type='str')
+        max_retry=dict(required=False, default=30, type='int'),
+        sleep=dict(required=False, default=20, type='int'),
+        target_status=dict(required=False, default='ACTIVE', type='str')
     ))
 
     module = AnsibleModule(
@@ -85,7 +81,7 @@ def run_module():
     target_status = module.params['target_status']
 
     is_target_status = False
-    
+
     if module.check_mode:
         module.exit_json(msg="done - (dry run mode)", changed=False)
 
@@ -100,7 +96,7 @@ def run_module():
 
         except APIError as api_error:
             return module.fail_jsonl(msg="Failed to call OVH API: {0}".format(api_error))
-        
+
         if is_target_status:
             module.exit_json(changed=True, **result)
 
