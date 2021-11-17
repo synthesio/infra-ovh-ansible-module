@@ -40,9 +40,12 @@ public_cloud_instance
 public_cloud_instance_failover_ip
 public_cloud_instance_info
 public_cloud_instance_info_by_name
-public_cloud_instance_vrack
+public_cloud_instance_netif_info
+public_cloud_instance_private_network
+public_cloud_instance_wait
 public_cloud_monthly_billing
 public_cloud_project_info
+public_cloud_ssh_key_info_by_name
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
