@@ -55,7 +55,6 @@ def run_module():
     client = ovh_api_connect(module)
 
     project_name = module.params['project_name']
-  
 
     try:
         projects_list = client.get('/cloud/project')
@@ -67,11 +66,11 @@ def run_module():
             proj_info = client.get('/cloud/project/%s' % proj_id)
         except APIError as api_error:
             module.fail_json(msg="Error getting project info: {0}".format(api_error))
-            
+
         if proj_info['description'] == project_name:
             break
 
-    if proj_info:                    
+    if proj_info:
         module.exit_json(changed=True, **proj_info)
 
 

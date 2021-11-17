@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -64,7 +63,6 @@ def run_module():
     ssh_key_name = module.params['ssh_key_name']
     service_name = module.params['service_name']
 
-
     key_ssh_list = []
     try:
         key_ssh_list = client.get('/cloud/project/{0}/sshkey'.format(service_name))
@@ -77,7 +75,6 @@ def run_module():
             module.exit_json(changed=False, **ssh_data)
 
     module.fail_json(msg="Error: could not find given SSH Key name {0} in {1}".format(ssh_key_name, key_ssh_list))
-
 
 
 def main():
