@@ -14,7 +14,7 @@ short_description: Wait for an Public Cloud Instance to become active
 description:
     - Wait until the public cloud instance installation is done (status == active)
     - Can be used to wait before running next task in your playbook
-author: Synthesio SRE Team
+author: Article714 (M. Piriou, C. Guychard)
 requirements:
     - ovh >= 0.5.0
 options:
