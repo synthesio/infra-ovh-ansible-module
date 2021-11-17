@@ -25,8 +25,8 @@ options:
     instance_id:
         required: true
         description:
-            - The instance name
-    private_network:
+            - The instance id
+    private_network_id:
         required: true
         description:
             - The id of the private_network
@@ -46,7 +46,7 @@ EXAMPLES = '''
   synthesio.ovh.public_cloud_instance_private_network:
     instance_id: "{{ instance_id }}"
     service_name: "{{ service_name }}"
-    private_network: "{{ private_network }}"
+    private_network_id: "{{ private_network_id }}"
     static_ip: "{{ static_ip }}"
     state: present
 '''
@@ -80,7 +80,7 @@ def run_module():
     client = ovh_api_connect(module)
 
     service_name = module.params['service_name']
-    private_network = module.params['private_network']
+    private_network_id = module.params['private_network_id']
     static_ip = module.params['static_ip']
     instance_id= module.params['instance_id']
     state = module.params['state']
@@ -88,49 +88,48 @@ def run_module():
     if module.check_mode:
         module.exit_json(
             msg="{}/{} successfully configured ({}) on  private_network {} - (dry run mode)".format(
-                instance_id,service_name , state, private_network ),
+                instance_id,service_name , state, private_network_id ),
             changed=True)
 
 
-    is_already_registered = False   
+    is_already_registered = False
     private_network_if=None
 
     # list existing interfaces
     try:
         interfaces_list = client.get(
                 '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id))
-        
+
         for netif in interfaces_list:
-            if netif['networkId'] == private_network:
+            if netif['networkId'] == private_network_id:
                 is_already_registered=True
                 private_network_if = netif
 
     except APIError as api_error:
         module.fail_json(msg="Failed to get interfaces list: {0}".format(api_error))
-        
+
     # Attach or detach
-    
     if state == 'present':
         if not is_already_registered:
             try:
-                if static_ip: 
+                if static_ip:
                     attach_result = client.post(
-                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network, ip=static_ip)
+                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network_id, ip=static_ip)
                     module.exit_json(changed=True, **attach_result)
                 else:
                     attach_result = client.post(
-                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network)
+                        '/cloud/project/{0}/instance/{1}/interface'.format(service_name, instance_id), networkId=private_network_id)
                     module.exit_json(changed=True, **attach_result)
 
                 module.exit_json( msg="private_network {} interface has been added to instance {}".format(
-                                    private_network, instance_id), result= attach_result, changed=True)
+                                    private_network_id, instance_id), result= attach_result, changed=True)
 
             except APIError as api_error:
                 module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
         module.exit_json( msg="private_network {} interface already exists on instance {}".format(
-                                    private_network, instance_id), changed=False)    
-                                 
+                                    private_network_id, instance_id), changed=False)
+
     else:
         if is_already_registered:
             try:
@@ -138,16 +137,16 @@ def run_module():
                     '/cloud/project/{0}/instance/{1}/interface/{2}'.format(service_name, instance_id, private_network_if['id']))
 
                 module.exit_json( msg="private_network {} interface has been deleted from instance {}".format(
-                                    private_network, instance_id), result= detach_result,  changed=True)
+                                    private_network_id, instance_id), result= detach_result,  changed=True)
 
             except APIError as api_error:
                 module.fail_json(msg="Failed to remove private_network interface: {0}".format(api_error))
 
         module.exit_json( msg="private_network {} interface does not exist on instance {}".format(
-                                    private_network, instance_id), changed=False)    
-                           
+                                    private_network_id, instance_id), changed=False)
 
-    module.fail_json( msg="do not know how to deal with private_network information", changed=False)          
+
+    module.fail_json( msg="do not know how to deal with private_network information", changed=False)
 
 
 def main():

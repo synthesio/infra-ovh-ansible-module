@@ -12,9 +12,9 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: public_cloud_project_info
-short_description: Get OVH Public cloud project SSH Keys information
+short_description: Get OVH Public cloud project SSH Key information
 description:
-    - This module retrieves SSH Keys information from Public Cloud Project using a human readable ssh name (name)
+    - This module retrieves SSH Key information from Public Cloud Project using a human readable ssh name (name)
 author: Article714 (C. Guychard)
 requirements:
     - ovh >= 0.5.0
@@ -25,7 +25,7 @@ options:
             - The ID of project
     ssh_name:
         required: true
-        description!
+        description:
             - The SSH Keys humane-readable name
 '''
 

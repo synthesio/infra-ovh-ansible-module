@@ -13,7 +13,7 @@ module: public_cloud_failover_ip_info
 short_description: Retrieve all info for a OVH failover IP
 description:
     - This module retrieves all info from a OVH failover IP
-author: Synthesio SRE Team
+author: Article714 (M. Piriou, C. Guychard)
 requirements:
     - ovh >= 0.5.0
 options:

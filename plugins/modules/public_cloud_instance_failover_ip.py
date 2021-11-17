@@ -94,11 +94,9 @@ def run_module():
         is_already_attached = True
 
     # Attach or detach
-    
     if state == 'present':
         if not is_already_attached:
             try:
-                
                 attach_result = client.post(
                     '/cloud/project/{0}/ip/failover/{1}/attach'.format(service_name, fo_ip_id), instanceId=instance_id)
 
@@ -107,18 +105,17 @@ def run_module():
 
             except APIError as api_error:
                 module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
-        
+
         module.exit_json( msg="Fail-over IP {} interface already exists on instance {}".format(
-                                    fo_ip_id, instance_id), changed=False)    
-                                 
+                                    fo_ip_id, instance_id), changed=False)
+
     else:
         if is_already_attached:
             module.fail_json(msg="NOT SUPPORTED BY API YET: Do no know how to remove fo_ip_id from instance... ")
 
         module.exit_json( msg="Fail-over IP {} interface does not exist on instance {}".format(
-                                    fo_ip_id, instance_id), changed=False)    
-                           
-                           
+                                    fo_ip_id, instance_id), changed=False)
+
 def main():
     run_module()
 
