@@ -93,7 +93,7 @@ def run_module():
 
     src = template
     with open(src, 'r') as stream:
-        content = yaml.load(stream)
+        content = yaml.safe_load(stream)
     conf = {}
     for i, j in content.items():
         conf[i] = j
