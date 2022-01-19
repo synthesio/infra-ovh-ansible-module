@@ -69,9 +69,13 @@ def run_module():
 
         if proj_info['description'] == project_name:
             break
+        else:
+            proj_info = None
 
     if proj_info:
         module.exit_json(changed=True, **proj_info)
+    else:
+        module.fail_json(msg="Public cloud project does not exist: %s" % project_name)
 
 
 def main():
