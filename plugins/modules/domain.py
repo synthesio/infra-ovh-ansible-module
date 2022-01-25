@@ -19,6 +19,7 @@ requirements:
 options:
     value:
         required: true
+
         description: The value of the record
     name:
         required: true
