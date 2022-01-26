@@ -81,7 +81,7 @@ def run_module():
         # Messages cannot be displayed in real time (yet)
         # https://github.com/ansible/proposals/issues/92
         display.display("%i out of %i" %
-                        (i, int(max_retry)), constants.COLOR_VERBOSE,screen_only=True)
+                        (i, int(max_retry)), constants.COLOR_VERBOSE, screen_only=True)
         try:
             tasklist = client.get(
                 '/dedicated/server/%s/task' % service_name,
