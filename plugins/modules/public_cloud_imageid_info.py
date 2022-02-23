@@ -10,9 +10,9 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: public_cloud_imageid_info
-short_description: Get flavor id based on commercial name
+short_description: Get image id based on human name in ovh repository or in own snapshot repository
 description:
-    - Get imageid based on commercial name (t1-45, b2-7 etc)
+    - Get imageid based on human name ("Debian 10", "Ubuntu 21.04","Centos 8", etc)
     - The imageid change between region
     - The retrieved imageid can be used to spawn a new instance
 author: Synthesio SRE Team
@@ -21,7 +21,7 @@ requirements:
 options:
     name:
         required: true
-        description: The commercial name of the flavor (t1-45, b2-7 etc)
+        description: The human name of the image ("Debian 10", "Ubuntu 21.04","Centos 8", etc)
     region:
         required: true
         description: The region where to lookup for imageid
@@ -32,8 +32,8 @@ options:
 '''
 
 EXAMPLES = '''
-- name: run installation
-  synthesio.ovh.public_cloud_imageid_info
+- name: Get image id
+  synthesio.ovh.public_cloud_imageid_info:
     service_name: "{{ service_name }}"
     region: "GRA7"
     name: "Debian 10"
@@ -70,19 +70,27 @@ def run_module():
     name = module.params['name']
     region = module.params['region']
 
+    # Get images list
     try:
-        result = client.get('/cloud/project/%s/image' % (service_name),
-                            region=region
-                            )
-        for i in result:
-            if i['name'] == name:
-                image_id = i['id']
-                module.exit_json(changed=False, id=image_id)
-
-        module.fail_json(msg="Image {} not found in {}".format(name, region), changed=False)
-
+        result_image = client.get('/cloud/project/%s/image' % (service_name),
+                                  region=region)
     except APIError as api_error:
         module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    # Get snapshot list
+    try:
+        result_snapshot = client.get('/cloud/project/%s/snapshot' % (service_name),
+                                     region=region)
+    except APIError as api_error:
+        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    # search in both list
+    for i in (result_image + result_snapshot):
+        if i['name'] == name:
+            image_id = i['id']
+            module.exit_json(changed=False, id=image_id)
+
+    module.fail_json(msg="Image {} not found in {}".format(name, region), changed=False)
 
 
 def main():

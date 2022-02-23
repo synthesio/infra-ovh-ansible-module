@@ -8,7 +8,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = '''
 ---
-module: dedicated_server_wait
+module: dedicated_server_install_wait
 short_description: Wait until the dedicated server installation is done
 description:
     - Wait until the dedicated server installation is done
@@ -32,11 +32,12 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.dedicated_server_wait:
+- name: Wait until the dedicated server installation is done
+  synthesio.ovh.dedicated_server_install_wait:
     service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"
     sleep: "10"
-delegate_to: localhost
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

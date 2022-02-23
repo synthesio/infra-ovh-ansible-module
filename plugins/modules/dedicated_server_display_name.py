@@ -27,10 +27,11 @@ options:
 '''
 
 EXAMPLES = '''
-synthesio.ovh.display_name
-  service_name: "{{ ovhname }}"
-  display_name: "{{ ansible_hostname }}"
-delegate_to: localhost
+- name: "Set display name to {{ display_name }} on server {{ ovhname }}"
+  synthesio.ovh.dedicated_server_display_name:
+    service_name: "{{ ovhname }}"
+    display_name: "{{ display_name }}"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''
