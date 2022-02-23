@@ -1,22 +1,24 @@
-# An Ansible module to talk with OVH API.
+# An Ansible module to talk with OVH API
 
 ## Requirements
 
 Tested with:
 
 - Python 3.7
-- Python-ovh 0.5: https://github.com/ovh/python-ovh
-- Ansible 2.9
+- [Python-ovh 0.5](https://github.com/ovh/python-ovh)
+- Ansible 2.9+
 
 ## Collection
 
-This repository must be a submodule of ansible:
-```
-git submodule add -f https://github.com/synthesio/infra-ovh-ansible-module collections/ansible_collections/synthesio/ovh
+This module can be [installed as a collection](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#installing-a-collection-from-a-git-repository)
+
+```shell
+ansible-galaxy collection install git+https://github.com/synthesio/infra-ovh-ansible-module
 ```
 
-This collection provide the following modules:
-```
+This collection provides the following modules:
+
+```text
 dedicated_server_boot
 dedicated_server_display_name
 dedicated_server_info
@@ -34,12 +36,13 @@ public_cloud_imageid_info
 public_cloud_instance_info
 public_cloud_instance
 public_cloud_monthly_billing
+public_cloud_block_storage_instance
+public_cloud_block_storage
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
 
 An example for a custom template to install a dedicated server is present in `roles/ovhtemplate` folder
-
 
 ## Upgrade from synthesio.ovh < 5.0.0
 
@@ -53,14 +56,14 @@ If you are upgrading from 4.0.0 and earlier, please read the doc and update your
 
 The collection path must be defined in your `ansible.cfg` :
 
-```
+```ini
 [defaults]
 collections_paths = collections/
 ```
 
 In `/etc/ovh.conf`:
 
-```
+```ini
 [default]
 ; general configuration: default endpoint
 endpoint=ovh-eu
@@ -74,7 +77,7 @@ consumer_key=<YOUR CONSUMER KEY>
 
 Alternatively, you can provide credentials as module attributes:
 
-```
+```yaml
 - name: Add server to vrack
   synthesio.ovh.dedicated_server_vrack:
     endpoint: "ovh-eu"
@@ -93,12 +96,11 @@ Here are a few examples of what you can do. Please read the module for everythin
 
 As this is a collection now you must declare it in each task.
 
-
 A few examples:
 
 ### Add a host into the vrack
 
-```
+```yaml
 - name: Add server to vrack
   synthesio.ovh.dedicated_server_vrack:
     service_name: "{{ ovhname }}"
@@ -107,7 +109,7 @@ A few examples:
 
 ### Add a DNS entry for `internal.bar.example.com`
 
-```
+```yaml
 - name: Add server IP to DNS
   synthesio.ovh.domain:
     domain: "example.com"
@@ -120,26 +122,37 @@ A few examples:
 
 ### Install a new dedicated server
 
-```
+```yaml
 - Install new dedicated server
   synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
     template: "debian10_64"
 
-- Wait for the server installation
-  synthesio.ovh.dedicated_server_wait:
+- name: Wait for the server installation
+  synthesio.ovh.dedicated_server_install_wait:
     service_name: "ns12345.ip-1-2-3.eu"
     max_retry: "240"
     sleep: "10"
+```
+
+### Install a new dedicated server with only 2 disks
+
+```yaml
+- Install new dedicated server
+  synthesio.ovh.dedicated_server_install:
+    service_name: "ns12345.ip-1-2-3.eu"
+    hostname: "server01.example.net"
+    template: "debian10_64"
+    soft_raid_devices: "2"
 
 ```
 
 ### Install a public cloud instance
 
-```
+```yaml
 - name: run a public cloud installation
-  synthesio.ovh.ovh_public_cloud_instance:
+  synthesio.ovh.public_cloud_instance:
     name: "{{ inventory_hostname }}"
     ssh_key_id: "{{ ssh_key_id }}"
     service_name: "{{ service_name }}"
