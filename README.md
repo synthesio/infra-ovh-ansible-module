@@ -114,6 +114,7 @@ A few examples:
     value: "192.0.2.1"
     record_type: "A"
     name: "internal.bar"
+    record_ttl: 10
 
 ```
 
