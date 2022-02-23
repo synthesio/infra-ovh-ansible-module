@@ -28,10 +28,19 @@ options:
         description: The domain to modify
     record_type:
         required: false
-        description: The DNS record type (A, CNAME, TXT, AAAA, NS, SRV, MX)
+        description: The DNS record type (A AAAA CAA CNAME DKIM DMARC DNAME LOC MX NAPTR NS PTR SPF SRV SSHFP TLSA TXT)
+        default: A
     state:
         required: false
-        description: The state
+        description: Indicate the desired state for the record
+        default: present
+        choices:
+          - present
+          - absent
+    ttl:
+        required: false
+        default: 0
+        description: Time To live for the given record
 
 '''
 
@@ -61,8 +70,9 @@ def run_module():
         value=dict(required=True),
         name=dict(required=True),
         domain=dict(required=True),
-        record_type=dict(choices=['A', 'CNAME', 'TXT', 'AAAA', 'NS', 'SRV', 'MX'], default='A'),
-        state=dict(choices=['present', 'absent'], default='present')
+        record_type=dict(choices=['A', 'AAAA' 'CAA' 'CNAME' 'DKIM' 'DMARC' 'DNAME' 'LOC' 'MX' 'NAPTR' 'NS' 'PTR' 'SPF' 'SRV' 'SSHFP' 'TLSA' 'TXT'], default='A'),
+        state=dict(choices=['present', 'absent'], default='present'),
+        record_ttl=dict(type="int", required=False, default=0),
     ))
 
     module = AnsibleModule(
@@ -76,6 +86,7 @@ def run_module():
     name = module.params['name']
     record_type = module.params['record_type']
     state = module.params['state']
+    record_ttl = module.params["record_ttl"]
 
     if module.check_mode:
         module.exit_json(msg="{} set to {}.{} ! - (dry run mode)".format(value, name, domain))
@@ -119,7 +130,8 @@ def run_module():
                 client.put(
                     '/domain/zone/%s/record/%s' % (domain, ind),
                     subDomain=name,
-                    target=value
+                    target=value,
+                    ttl=record_ttl
                 )
                 # we must run a refresh on zone after modifications
                 client.post(
@@ -137,7 +149,8 @@ def run_module():
                 '/domain/zone/%s/record' % domain,
                 fieldType=record_type,
                 subDomain=name,
-                target=value
+                target=value,
+                ttl=record_ttl
             )
             # we must run a refresh on zone after modifications
             client.post(
