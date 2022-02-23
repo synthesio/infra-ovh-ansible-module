@@ -71,7 +71,10 @@ def run_module():
         value=dict(required=True),
         name=dict(required=True),
         domain=dict(required=True),
-        record_type=dict(choices=['A', 'AAAA' 'CAA' 'CNAME' 'DKIM' 'DMARC' 'DNAME' 'LOC' 'MX' 'NAPTR' 'NS' 'PTR' 'SPF' 'SRV' 'SSHFP' 'TLSA' 'TXT'], default='A'),
+        record_type=dict(choices=['A', 'AAAA', 'CAA', 'CNAME', 'DKIM', 'DMARC',
+                                  'DNAME', 'LOC', 'MX', 'NAPTR', 'NS', 'PTR',
+                                  'SPF', 'SRV', 'SSHFP', 'TLSA', 'TXT'],
+                         default='A'),
         state=dict(choices=['present', 'absent'], default='present'),
         record_ttl=dict(type="int", required=False, default=0),
     ))
