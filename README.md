@@ -1,12 +1,12 @@
-# An Ansible module to talk with OVH API
+# An Ansible collection to talk with OVH API
 
 ## Requirements
 
 Tested with:
 
 - Python 3.7
-- [Python-ovh 0.5](https://github.com/ovh/python-ovh)
-- Ansible 2.9+
+- [Python-ovh 1.0](https://github.com/ovh/python-ovh)
+- Ansible 2.11+
 
 ## Collection
 
@@ -36,6 +36,7 @@ public_cloud_flavorid_info
 public_cloud_imageid_info
 public_cloud_instance_info
 public_cloud_instance
+public_cloud_instance_delete
 public_cloud_monthly_billing
 public_cloud_block_storage_instance
 public_cloud_block_storage
@@ -44,14 +45,6 @@ public_cloud_block_storage
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
 
 An example for a custom template to install a dedicated server is present in `roles/ovhtemplate` folder
-
-## Upgrade from synthesio.ovh < 5.0.0
-
-Before version 5.0.0 of the collection, all tasks were in the same `synthesio.ovh.ovh` module !
-Since 5.0.0, the collection has been rewritten: it is now split into multiple modules, which is easier to maintain, enhance, debug,
-and more ansible collection compliant.
-
-If you are upgrading from 4.0.0 and earlier, please read the doc and update your playbooks !
 
 ## Configuration
 
@@ -117,6 +110,7 @@ A few examples:
     value: "192.0.2.1"
     record_type: "A"
     name: "internal.bar"
+    record_ttl: 10
 
 ```
 

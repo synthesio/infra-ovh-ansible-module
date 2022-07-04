@@ -89,7 +89,7 @@ def run_module():
             result = client.get(
                 '/dedicated/server/%s/task/%s' % (service_name, max(tasklist)))
         except APIError as api_error:
-            return module.fail_jsonl(msg="Failed to call OVH API: {0}".format(api_error))
+            return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
         message = ""
         # Get more details in installation progression
