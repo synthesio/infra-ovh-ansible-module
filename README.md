@@ -39,6 +39,8 @@ public_cloud_instance_delete
 public_cloud_monthly_billing
 public_cloud_block_storage_instance
 public_cloud_block_storage
+public_cloud_object_storage
+public_cloud_object_storage_policy
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
