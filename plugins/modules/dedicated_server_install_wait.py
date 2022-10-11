@@ -43,11 +43,7 @@ EXAMPLES = '''
 RETURN = ''' # '''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-from ansible.utils.display import Display
-from ansible import constants
 import time
-
-display = Display()
 
 try:
     from ovh.exceptions import APIError
@@ -78,10 +74,6 @@ def run_module():
         module.exit_json(msg="done - (dry run mode)", changed=False)
 
     for i in range(1, int(max_retry)):
-        # Messages cannot be displayed in real time (yet)
-        # https://github.com/ansible/proposals/issues/92
-        display.display("%i out of %i" %
-                        (i, int(max_retry)), constants.COLOR_VERBOSE)
         try:
             tasklist = client.get(
                 '/dedicated/server/%s/task' % service_name,
@@ -105,7 +97,6 @@ def run_module():
             for progress in progress_status['progress']:
                 if progress["status"] == "doing":
                     message = progress['comment']
-        display.display("{}: {}".format(result['status'], message), constants.COLOR_VERBOSE)
         time.sleep(float(sleep))
     module.fail_json(msg="Max wait time reached, about %i x %i seconds" % (i, int(sleep)))
 
