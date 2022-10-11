@@ -4,7 +4,7 @@
 
 Tested with:
 
-- Python 3.7
+- Python 3.8
 - [Python-ovh 1.0](https://github.com/ovh/python-ovh)
 - Ansible 2.11+
 
