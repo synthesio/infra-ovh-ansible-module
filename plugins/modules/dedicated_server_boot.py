@@ -23,7 +23,7 @@ options:
     boot:
         required: true
         default: harddisk
-        choices: ['harddisk','rescue']
+        choices: ['harddisk','rescue','rescue-customer']
         description:
             - Which way you want to boot your dedicated server
     force_reboot:
@@ -59,7 +59,7 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         service_name=dict(required=True),
-        boot=dict(required=True, choices=['harddisk', 'rescue']),
+        boot=dict(required=True, choices=['harddisk', 'rescue', 'rescue-customer']),
         force_reboot=dict(required=False, default=False, type='bool')
     ))
 
@@ -74,7 +74,7 @@ def run_module():
     force_reboot = module.params['force_reboot']
     changed = False
 
-    bootid = {'harddisk': 1, 'rescue': 1122}
+    bootid = {'harddisk': 1, 'rescue': 1122, 'rescue-customer': 46371}
     if module.check_mode:
         module.exit_json(
             msg="{} is now set to boot on {}. Reboot in progress... - (dry run mode)".format(service_name, boot),
