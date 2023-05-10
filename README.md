@@ -4,9 +4,9 @@
 
 Tested with:
 
-- Python 3.8
+- Python 3.9
 - [Python-ovh 1.0](https://github.com/ovh/python-ovh)
-- Ansible 2.11+
+- Ansible 2.12+
 
 ## Collection
 
