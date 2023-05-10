@@ -112,6 +112,7 @@ A few examples:
     record_type: "A"
     name: "internal.bar"
     record_ttl: 10
+    append: true
 
 ```
 
