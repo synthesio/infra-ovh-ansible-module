@@ -20,6 +20,7 @@ This collection provides the following modules:
 
 ```text
 dedicated_server_boot
+dedicated_server_boot_wait
 dedicated_server_display_name
 dedicated_server_info
 dedicated_server_install
