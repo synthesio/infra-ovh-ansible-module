@@ -123,13 +123,13 @@ def run_module():
                     # the record already exists : don't add it later
                     if record['target'] in value:
                         value.remove(record['target'])
-
-                    # the record must not exist and append is set to false : delete from zone
-                    if record['target'] not in value and not append:
-                        client.delete(
-                            '/domain/zone/%s/record/%s' % (domain, ind)
-                        )
-                        record_deleted.append(record['target'])
+                    else:
+                        # the record must not exist and append is set to false : delete from zone
+                        if not append:
+                            client.delete(
+                                '/domain/zone/%s/record/%s' % (domain, ind)
+                            )
+                            record_deleted.append(record['target'])
 
                 except APIError as api_error:
                     module.fail_json(
