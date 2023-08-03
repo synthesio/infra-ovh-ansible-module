@@ -40,6 +40,7 @@ synthesio.ovh.dedicated_server_install:
     hostname: "server01.example.net"
     template: "debian10_64"
     soft_raid_devices: "2"
+    partition_scheme_name: "custom"
 delegate_to: localhost
 '''
 
@@ -61,7 +62,8 @@ def run_module():
         hostname=dict(required=True),
         template=dict(required=True),
         ssh_key_name=dict(required=False, default=None),
-        soft_raid_devices=dict(required=False, default=None)
+        soft_raid_devices=dict(required=False, default=None),
+        partition_scheme_name=dict(required=False, default="default")
     ))
 
     module = AnsibleModule(
@@ -75,6 +77,7 @@ def run_module():
     template = module.params['template']
     ssh_key_name = module.params['ssh_key_name']
     soft_raid_devices = module.params['soft_raid_devices']
+    partition_scheme_name = module.params['partition_scheme_name']
 
     if module.check_mode:
         module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
@@ -98,7 +101,7 @@ def run_module():
 
     try:
         client.post(
-            '/dedicated/server/%s/install/start' % service_name, **details, templateName=template)
+            '/dedicated/server/%s/install/start' % service_name, **details, templateName=template, partitionSchemeName=partition_scheme_name)
 
         module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(service_name, hostname, template), changed=True)
 
