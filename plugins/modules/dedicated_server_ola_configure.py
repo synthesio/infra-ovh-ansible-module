@@ -62,9 +62,10 @@ def run_module():
     aggregate_name = module.params['aggregate_name']
 
     if module.check_mode:
-        module.exit_json(msg="OLA configuration in progress on {} with aggregate name {} - (dry run mode)".format(service_name, aggregate_name),changed=True)
+        module.exit_json(msg="OLA configuration in progress on {} with aggregate name {} - (dry run mode)"
+                         .format(service_name, aggregate_name), changed=True)
 
-    virtualNetworkInterfaces=list()
+    virtualNetworkInterfaces = list()
 
     try:
         macaddresses = client.get('/dedicated/server/%s/networkInterfaceController' % service_name)
@@ -73,20 +74,22 @@ def run_module():
                 uuid = client.get('/dedicated/server/%s/networkInterfaceController/%s' % (service_name, macaddress))
                 virtualNetworkInterfaces.append(uuid['virtualNetworkInterface'])
         else:
-            module.fail_json(msg="{} doesn't have enough interfaces eligible to OLA, please remove vRack association or Additional IPs".format(service_name))
+            module.fail_json(msg="{} doesn't have enough interfaces eligible to OLA, please remove vRack association or Additional IPs"
+                             .format(service_name))
     except APIError as api_error:
         return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
     try:
         for virtualNetworkInterface in virtualNetworkInterfaces:
             vrack = client.get('/dedicated/server/%s/virtualNetworkInterface/%s' % (service_name, virtualNetworkInterface))
-            if vrack['vrack'] != None:
+            if vrack['vrack'] is not None:
                 module.fail_json(msg="{} on {} is linked to a vRack, please remove vRack association first".format(vrack['name'], service_name))
     except APIError as api_error:
         return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
     try:
-        task = client.post('/dedicated/server/%s/ola/aggregation' % service_name, name=aggregate_name, virtualNetworkInterfaces=virtualNetworkInterfaces)
+        task = client.post('/dedicated/server/%s/ola/aggregation' % service_name,
+                           name=aggregate_name, virtualNetworkInterfaces=virtualNetworkInterfaces)
 
         module.exit_json(msg="OLA configuration in progress on {} with name {} !".format(service_name, aggregate_name), changed=True, task=task)
 
