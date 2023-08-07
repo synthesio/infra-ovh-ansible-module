@@ -55,7 +55,7 @@ def run_module():
     service_name = module.params['service_name']
 
     if module.check_mode:
-        module.exit_json(msg="OLA unconfiguration in progress on {} - (dry run mode)".format(service_name),changed=True)
+        module.exit_json(msg="OLA unconfiguration in progress on {} - (dry run mode)".format(service_name), changed=True)
 
     try:
         macaddresses = client.get('/dedicated/server/%s/networkInterfaceController?linkType=private_lag' % service_name)
