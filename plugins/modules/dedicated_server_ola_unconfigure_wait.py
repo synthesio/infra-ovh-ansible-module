@@ -76,7 +76,7 @@ def run_module():
     sleep = module.params['sleep']
 
     if module.check_mode:
-        module.exit_json(msg="done - (dry run mode)",changed=False)
+        module.exit_json(msg="done - (dry run mode)", changed=False)
 
     for i in range(1, int(max_retry)):
         try:
