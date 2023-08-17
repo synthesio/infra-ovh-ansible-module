@@ -430,10 +430,16 @@ def run_module():
                 else:
                     acl_wanted["action"] = "update" if acl_wanted["state"] != "absent" else "delete"
             else:
-                if acl_wanted["state"] == "absent":
-                    acl_wanted["action"] = "delete"
+                if acl_wanted in nas_partition_acl_existing:
+                    if acl_wanted["state"] == "absent":
+                        acl_wanted["action"] = "delete"
+                    else:
+                        acl_wanted["action"] = "unchanged"
                 else:
-                    acl_wanted["action"] = "create"
+                    if acl_wanted["state"] == "absent":
+                        acl_wanted["action"] = "unchanged"
+                    else:
+                        acl_wanted["action"] = "create"
 
 
         # Executing actions on ACLs
@@ -524,9 +530,6 @@ def run_module():
 
 
 def main():
-    if not HAS_OVH:
-        raise ImportError("ovh Python module is required for this script")
-
     run_module()
 
 
