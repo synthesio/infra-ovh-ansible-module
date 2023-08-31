@@ -67,7 +67,7 @@ def run_module():
     module_args.update(dict(
         domain=dict(required=True),
         account=dict(required=True),
-        state=dict(required=True, choices=['present', 'absent'], default='present'),
+        state=dict(choices=['present', 'absent'], default='present'),
         password=dict(required=False),
         description=dict(required=False),
         size=dict(required=False)
