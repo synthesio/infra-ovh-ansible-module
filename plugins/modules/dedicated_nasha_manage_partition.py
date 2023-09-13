@@ -175,7 +175,7 @@ def run_module():
     if module.check_mode:
         DRY_RUN_MSG = " - (dry run mode)"
 
-    #***************** PARTITION MANAGEMENT *****************
+    # ***************** PARTITION MANAGEMENT *****************
 
     # Check if zpool exist !
     try:
@@ -214,7 +214,7 @@ def run_module():
         )
 
     # If partition state is present, and does not exists, we create it
-    elif state == "present" and not nas_partition_name in partitions:
+    elif state == "present" and nas_partition_name not in partitions:
         if not module.check_mode:
             try:
                 # Create partition
@@ -244,8 +244,8 @@ def run_module():
         )
         partition_changed = False
 
-    # If partition state is absent,  and does not exists
-    elif state == "absent" and not nas_partition_name in partitions:
+    # If partition state is absent, and does not exists
+    elif state == "absent" and nas_partition_name not in partitions:
         module.exit_json(
             msg="Partition {0} is already deleted.{1}".format(
                 nas_partition_name, DRY_RUN_MSG
@@ -253,7 +253,7 @@ def run_module():
             changed=False,
         )
 
-    #***************** SNAPSHOT MANAGEMENT *****************
+    # ***************** SNAPSHOT MANAGEMENT *****************
 
     # If nas_partition_snapshot_type exists and not empty
     if nas_partition_snapshot_type:
@@ -362,7 +362,9 @@ def run_module():
                         client, "nasha", nas_service_name, res["taskId"], sleep, max_retry
                     )
 
-        nas_partition_snapshot_changed = [(item.get('type'), item.get('action')) for item in nas_partition_snapshot if item.get('action') != 'unchanged']
+        nas_partition_snapshot_changed = [
+            (item.get('type'), item.get('action')) for item in nas_partition_snapshot if item.get('action') != 'unchanged'
+        ]
         if len(nas_partition_snapshot_changed) == 0:
             final_message = (final_message
                              + " No changes in snapshot configuration.\n"
@@ -381,9 +383,7 @@ def run_module():
             + " No snapshot specified.\n"
         )
 
-
-    #***************** ACL MANAGEMENT *****************
-
+    # ***************** ACL MANAGEMENT *****************
     if nas_partition_acl:
         nas_partition_acl_existing = []
         try:
@@ -420,15 +420,20 @@ def run_module():
                 del acl_wanted["type"]
 
         for acl_wanted in nas_partition_acl_wanted:
-            matching_acl = next((acl for acl in nas_partition_acl_existing if acl["ip"] == acl_wanted["ip"] ), None)
+            matching_acl = next((acl for acl in nas_partition_acl_existing if acl["ip"] == acl_wanted["ip"]), None)
             if matching_acl:
                 if "type" in acl_wanted:
-                    if matching_acl["type"] == acl_wanted["type"] and acl_wanted["state"] == "present":
+                    if (
+                        matching_acl["type"] == acl_wanted["type"]
+                        and acl_wanted["state"] == "present"
+                    ):
                         acl_wanted["action"] = "unchanged"
                     else:
                         acl_wanted["action"] = "update"
                 else:
-                    acl_wanted["action"] = "update" if acl_wanted["state"] != "absent" else "delete"
+                    acl_wanted["action"] = (
+                        "update" if acl_wanted["state"] != "absent" else "delete"
+                    )
             else:
                 if acl_wanted in nas_partition_acl_existing:
                     if acl_wanted["state"] == "absent":
@@ -440,7 +445,6 @@ def run_module():
                         acl_wanted["action"] = "unchanged"
                     else:
                         acl_wanted["action"] = "create"
-
 
         # Executing actions on ACLs
         for acl_wanted in nas_partition_acl_wanted:
@@ -496,18 +500,12 @@ def run_module():
                             msg="Failed to set partition ACL: %s" % api_error
                         )
 
-
         nas_partition_acl_changed = [(item.get('ip'), item.get('action')) for item in nas_partition_acl_wanted if item.get('action') != 'unchanged']
         if len(nas_partition_acl_changed) == 0:
-            final_message = (final_message
-                             + " No changes in ACL configuration.\n"
-                             )
+            final_message = final_message + " No changes in ACL configuration.\n"
         else:
-            final_message = (
-                final_message
-                + " And setup ACL like this {0}\n".format(
-                    nas_partition_acl_changed,
-                )
+            final_message = final_message + " And setup ACL like this {0}\n".format(
+                nas_partition_acl_changed,
             )
             acl_changed = True
     else:
@@ -516,7 +514,11 @@ def run_module():
             + " No ACL specified.\n"
         )
 
-    if ('acl_changed' in locals() and acl_changed) or ('partition_changed' in locals() and partition_changed) or ('snapshot_changed' in locals() and snapshot_changed) :
+    if (
+        ("acl_changed" in locals() and acl_changed)
+        or ("partition_changed" in locals() and partition_changed)
+        or ("snapshot_changed" in locals() and snapshot_changed)
+    ):
         all_changed = True
     else:
         all_changed = False
