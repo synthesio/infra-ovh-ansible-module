@@ -114,7 +114,6 @@ A few examples:
     name: "internal.bar"
     record_ttl: 10
     append: true
-
 ```
 
 ### Install a new dedicated server
