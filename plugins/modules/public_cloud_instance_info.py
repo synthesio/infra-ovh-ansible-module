@@ -26,11 +26,13 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.public_cloud_instance_info:
-  instance_id: "{{ instance_id }}"
-  service_name: "{{ service_name }}"
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Retrieve all info for a OVH public cloud instance
+  synthesio.ovh.public_cloud_instance_info:
+    instance_id: "{{ instance_id }}"
+    service_name: "{{ service_name }}"
+  delegate_to: localhost
+  register: instance_metadata
 '''
 
 RETURN = ''' # '''

@@ -30,11 +30,12 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.ip_reverse:
-  ip: 192.0.2.1
-  reverse: host.domain.example.
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Modify reverse on IP
+  synthesio.ovh.ip_reverse:
+    ip: 192.0.2.1
+    reverse: host.domain.example.
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

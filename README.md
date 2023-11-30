@@ -120,7 +120,7 @@ A few examples:
 ### Install a new dedicated server
 
 ```yaml
-- Install new dedicated server
+- name: Install new dedicated server
   synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
@@ -136,7 +136,7 @@ A few examples:
 ### Install a new dedicated server with only 2 disks
 
 ```yaml
-- Install new dedicated server
+- name: Install new dedicated server
   synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"

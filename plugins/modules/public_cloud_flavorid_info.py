@@ -31,7 +31,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Get flavor id
   synthesio.ovh.public_cloud_flavorid_info:
     service_name: "{{ service_name }}"

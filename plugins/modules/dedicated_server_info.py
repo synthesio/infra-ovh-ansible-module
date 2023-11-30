@@ -12,7 +12,7 @@ DOCUMENTATION = '''
 module: dedicated_server_info
 short_description: Retrieve all info for a OVH dedicated server
 description:
-    - This module retrieves all info from a OVH dedicated server
+    - This module retrieves all info for a OVH dedicated server
 author: Maxime Dupré
 requirements:
     - ovh >= 0.5.0
@@ -22,10 +22,12 @@ options:
         description: The service_name
 '''
 
-EXAMPLES = '''
-synthesio.ovh.dedicated_server_info:
-  service_name: "{{ service_name }}"
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Retrieve all info for an OVH dedicated server
+  synthesio.ovh.dedicated_server_info:
+    service_name: "{{ service_name }}"
+  delegate_to: localhost
+  register: dedicated_info
 '''
 
 RETURN = ''' # '''

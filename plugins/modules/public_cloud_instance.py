@@ -60,7 +60,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: "Launch install of {{ inventory_hostname }} on public cloud OVH"
   synthesio.ovh.public_cloud_instance:
     name: "{{ inventory_hostname }}"

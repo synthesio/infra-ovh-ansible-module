@@ -47,7 +47,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Ensure entry is in dns
   synthesio.ovh.domain:
     domain: example.com

@@ -22,10 +22,11 @@ options:
         description: The service_name to terminate
 '''
 
-EXAMPLES = '''
-synthesio.ovh.dedicated_server_terminate:
-  service_name: "{{ service_name }}"
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Terminate a dedicated server renting
+  synthesio.ovh.dedicated_server_terminate:
+    service_name: "{{ service_name }}"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

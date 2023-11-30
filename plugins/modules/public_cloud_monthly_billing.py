@@ -26,7 +26,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Enable monthly billing
   synthesio.ovh.public_cloud_monthly_billing:
     service_name: "{{ service_name }}"
