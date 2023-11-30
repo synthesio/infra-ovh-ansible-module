@@ -1,9 +1,11 @@
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
 try:
     import ovh
     from ovh.exceptions import APIError
+
     HAS_OVH = True
 except ImportError:
     HAS_OVH = False
@@ -11,15 +13,14 @@ except ImportError:
 
 def ovh_api_connect(module):
     if not HAS_OVH:
-        module.fail_json(msg='python-ovh must be installed to use this module')
-    credentials = ['endpoint', 'application_key',
-                   'application_secret', 'consumer_key']
-    credentials_in_parameters = [
-        cred in module.params for cred in credentials]
+        module.fail_json(msg="python-ovh must be installed to use this module")
+    credentials = ["endpoint", "application_key", "application_secret", "consumer_key"]
+    credentials_in_parameters = [cred in module.params for cred in credentials]
     try:
         if all(credentials_in_parameters):
             client = ovh.Client(
-                **{credential: module.params[credential] for credential in credentials})
+                **{credential: module.params[credential] for credential in credentials}
+            )
         else:
             client = ovh.Client()
     except APIError as api_error:
