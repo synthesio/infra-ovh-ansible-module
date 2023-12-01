@@ -7,19 +7,19 @@ from ansible.module_utils.basic import AnsibleModule
 
 __metaclass__ = type
 
-DOCUMENTATION = """
+DOCUMENTATION = r"""
 ---
 module: domain
-short_description: Manage DNS zone
+short_description: Manage record in DNS zone
 description:
-    - Manage DNS zone (only A records for now)
+    - Manage record in DNS zone
 author: Synthesio SRE Team
 requirements:
     - ovh >= 0.5.0
 options:
     value:
         required: true
-        description: The value of the record, can be a list
+        description: The value, or values as it can be a list, of the record
     name:
         required: true
         description: The name to create/update/delete
@@ -33,13 +33,12 @@ options:
     state:
         required: false
         description: Indicate the desired state for the record
+        default: present
     append:
         required: false
         description: Keep existings values and append
-        default: present
-        choices:
-          - present
-          - absent
+        description: This switch allows to have multiple record for the same name with different values. It will append values to existing one.
+        default: false
     ttl:
         required: false
         default: 0
@@ -119,45 +118,58 @@ def run_module():
     record_ttl = module.params["record_ttl"]
 
     if module.check_mode:
+        # TODO
+        # This check mode exit is not accurate.
+        # It has to be rewritten to reflect different actions
         module.exit_json(
-            msg="{} set to {}.{} ! - (dry run mode)".format(
-                ", ".join(value), name, domain
-            )
+            msg=f"{', '.join(value)} set to {name}.{domain} ! - (dry run mode)"
         )
 
     try:
         existing_records = client.get(
-            "/domain/zone/%s/record" % domain, fieldType=record_type, subDomain=name
+            f"/domain/zone/{domain}/record", fieldType=record_type, subDomain=name
         )
     except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        module.fail_json(msg=f"Failed to call OVH API: {api_error}")
 
     record_created = []
     record_deleted = []
+
+    # How record is handled
+    # A record (here) is composed with a name, a value and a type.
+    # - if we have existant record:
+    #   - if the value is *not* in the value of the module:
+    #     - if the parameter 'append' is set: ==> keep the record
+    #     - else: ==> delete the record
+    #   - if the value is in the value of the module: ==> keep the record
+    #     and complete with other values if any
+    # - if there is no record: ==> create record for each value in the module
+
     if state == "present":
-        # At least one record already exists
         if existing_records:
-            for ind in existing_records:
+            for record_id in existing_records:
                 try:
-                    record = client.get("/domain/zone/%s/record/%s" % (domain, ind))
-                    # the record already exists : don't add it later
-                    if record["target"] in value:
-                        value.remove(record["target"])
-
-                    # the record must not exist and append is set to false : delete from zone
-                    if record["target"] not in value and not append:
-                        client.delete("/domain/zone/%s/record/%s" % (domain, ind))
-                        record_deleted.append(record["target"])
-
+                    record = client.get(f"/domain/zone/{domain}/record/{record_id}")
                 except APIError as api_error:
-                    module.fail_json(
-                        msg="Failed to call OVH API: {0}".format(api_error)
-                    )
+                    module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+                # If the record exist with the desired value
+                # we can remove the value from the list to be created later
+                if record["target"] in value:
+                    value.remove(record["target"])
+
+                # If the record exist with an unwanted value, and we must not append it,
+                # we will removed it from the zone.
+                elif record["target"] not in value and not append:
+                    try:
+                        client.delete(f"/domain/zone/{domain}/record/{record_id}")
+                    except APIError as api_error:
+                        module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+                    record_deleted.append(record["target"])
 
         for v in value:
             try:
                 client.post(
-                    "/domain/zone/%s/record" % domain,
+                    f"/domain/zone/{domain}/record",
                     fieldType=record_type,
                     subDomain=name,
                     target=v,
@@ -165,52 +177,61 @@ def run_module():
                 )
                 record_created.append(v)
             except APIError as api_error:
-                module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+                module.fail_json(msg=f"Failed to call OVH API: {api_error}")
 
         if len(record_deleted) + len(record_created):
             # we must run a refresh on zone after modifications
-            client.post("/domain/zone/%s/refresh" % domain)
+            try:
+                client.post(f"/domain/zone/{domain}/refresh")
+            except APIError as api_error:
+                module.fail_json(msg=f"Failed to call OVH API: {api_error}")
 
             msg = ""
             if len(record_deleted):
-                msg += "{} deleted".format(", ".join(record_deleted))
+                msg += f"{', '.join(record_deleted)} deleted"
             if len(record_created):
                 if len(record_deleted):
                     msg += " and "
-                msg += "{} created".format(", ".join(record_created))
-            msg += " from record {}.{}".format(name, domain)
+                msg += f"{', '.join(record_created)} created"
+            msg += f" from record {name}.{domain}"
 
             module.exit_json(msg=msg, changed=True)
         else:
             module.exit_json(
-                msg="{} is already up-to-date on domain {}".format(name, domain),
+                msg=f"{name} is already up-to-date on domain {domain}",
                 changed=False,
             )
 
     elif state == "absent":
         if not existing_records:
             module.exit_json(
-                msg="Target {} doesn't exist on domain {}".format(name, domain),
+                msg=f"Target {name} doesn't exist on domain {domain}",
                 changed=False,
             )
 
+        for record_id in existing_records:
+            try:
+                record = client.get(f"/domain/zone/{domain}/record/{record_id}")
+            except APIError as api_error:
+                module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+
+            if record["target"] in value:
+                try:
+                    client.delete(f"/domain/zone/{domain}/record/{record_id}")
+                except APIError as api_error:
+                    module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+                record_deleted.append(record["target"])
+
+        # we must run a refresh on zone after modifications
         try:
-            for ind in existing_records:
-                record = client.get("/domain/zone/%s/record/%s" % (domain, ind))
-                client.delete("/domain/zone/%s/record/%s" % (domain, ind))
-                record_deleted.append(record.get("target"))
-
-            # we must run a refresh on zone after modifications
-            client.post("/domain/zone/%s/refresh" % domain)
-            module.exit_json(
-                msg="{} deleted  from record {}.{}".format(
-                    ", ".join(record_deleted), name, domain
-                ),
-                changed=True,
-            )
-
+            client.post(f"/domain/zone/{domain}/refresh")
         except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+            module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+
+        module.exit_json(
+            msg=f"{', '.join(record_deleted)} deleted from record {name}.{domain}",
+            changed=True,
+        )
 
 
 def main():
