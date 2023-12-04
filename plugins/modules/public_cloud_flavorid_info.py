@@ -10,9 +10,9 @@ __metaclass__ = type
 DOCUMENTATION = r"""
 ---
 module: public_cloud_flavorid_info
-short_description: Get flavor id based on commercial name
+short_description: Get flavor id, and its availability, based on commercial name
 description:
-    - Get flavorId based on commercial name (t1-45, b2-7 etc)
+    - Get flavorId based on commercial name (t1-45, b2-7 etc) with its availability
     - The flavorId change between region
     - The retrieved flavorId can be used to spawn a new instance
 author: Synthesio SRE Team
@@ -38,7 +38,7 @@ EXAMPLES = r"""
     region: "GRA7"
     name: "t1-45"
   delegate_to: localhost
-  register: flavor_id
+  register: flavor_infos
 """
 
 RETURN = """ # """
@@ -78,7 +78,8 @@ def run_module():
         for f in result:
             if f["name"] == name:
                 flavor_id = f["id"]
-                module.exit_json(changed=False, id=flavor_id)
+                available = f["available"]
+                module.exit_json(changed=False, id=flavor_id, availability=available)
 
         module.fail_json(
             msg="Flavor {} not found in {}".format(name, region), changed=False
