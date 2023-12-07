@@ -28,7 +28,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: "Enable monitoring on dedicated server {{ service_name }}"
   synthesio.ovh.dedicated_server_monitoring:
     service_name: "{{ service_name }}"

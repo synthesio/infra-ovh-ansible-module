@@ -27,7 +27,7 @@ options:
         description: The server name (used for hardware raid profils)
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Manage installation templates for dedicated servers
   synthesio.ovh.installation_template:
     template: "custom-debian-raid10-soft"

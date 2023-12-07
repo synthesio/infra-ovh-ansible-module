@@ -32,11 +32,12 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.dedicated_server_vrack
-  service_name: {{ service_name }}
-  vrack: "{{ vrack }}"
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Change the vrack of a dedicated server
+  synthesio.ovh.dedicated_server_vrack
+    service_name: {{ service_name }}
+    vrack: "{{ vrack }}"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''

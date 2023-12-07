@@ -25,11 +25,13 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.dedicated_server_networkinterfacecontroller:
-  link_type: "private"
-  service_name: "{{ service_name }}"
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Retrieve the mac addresses of the dedicated server
+  synthesio.ovh.dedicated_server_networkinterfacecontroller:
+    link_type: "private"
+    service_name: "{{ service_name }}"
+  delegate_to: localhost
+  register: dedicated_macaddress
 '''
 
 RETURN = ''' # '''

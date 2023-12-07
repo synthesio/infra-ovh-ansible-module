@@ -26,7 +26,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: "Set display name to {{ display_name }} on server {{ ovhname }}"
   synthesio.ovh.dedicated_server_display_name:
     service_name: "{{ ovhname }}"

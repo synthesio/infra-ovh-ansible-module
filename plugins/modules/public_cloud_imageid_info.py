@@ -31,7 +31,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Get image id
   synthesio.ovh.public_cloud_imageid_info:
     service_name: "{{ service_name }}"
