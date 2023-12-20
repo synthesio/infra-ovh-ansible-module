@@ -31,6 +31,7 @@ dedicated_server_terminate
 dedicated_server_vrack
 domain
 installation_template
+ip_move
 ip_reverse
 public_cloud_flavorid_info
 public_cloud_imageid_info
@@ -102,6 +103,16 @@ A few examples:
     service_name: "{{ ovhname }}"
     vrack: "{{ vrackid }}"
 ```
+
+### Move IP to a given host
+
+```yaml
+- name: Add server to vrack
+  synthesio.ovh.ip_move:
+    service_name: "{{ ovhname }}"
+    ip: "{{ ip }}"
+```
+
 
 ### Add a DNS entry for `internal.bar.example.com`
 
