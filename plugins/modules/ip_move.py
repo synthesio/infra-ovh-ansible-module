@@ -36,7 +36,6 @@ EXAMPLES = r'''
 RETURN = ''' # '''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-import urllib.parse
 
 try:
     from ovh.exceptions import APIError
