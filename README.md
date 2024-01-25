@@ -107,7 +107,7 @@ A few examples:
 ### Move IP to a given host
 
 ```yaml
-- name: Add server to vrack
+- name: Move IP to a given host
   synthesio.ovh.ip_move:
     service_name: "{{ ovhname }}"
     ip: "{{ ip }}"
