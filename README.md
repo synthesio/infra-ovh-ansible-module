@@ -32,6 +32,7 @@ dedicated_server_vrack
 domain
 installation_template
 ip_move
+ip_info
 ip_reverse
 public_cloud_flavorid_info
 public_cloud_imageid_info
