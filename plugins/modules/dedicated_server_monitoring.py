@@ -38,13 +38,7 @@ EXAMPLES = r'''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -58,7 +52,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     state = module.params['state']
@@ -71,17 +65,14 @@ def run_module():
     if module.check_mode:
         module.exit_json(msg="Monitoring is now {} for {} - (dry run mode)".format(state, service_name), changed=True)
 
-    try:
-        server_state = client.get('/dedicated/server/%s' % service_name)
+    server_state = client.wrap_call("GET", f"/dedicated/server/{service_name}")
 
-        if server_state['monitoring'] == monitoring_bool:
-            module.exit_json(msg="Monitoring is already {} on {}".format(state, service_name), changed=False)
+    if server_state['monitoring'] == monitoring_bool:
+        module.exit_json(msg="Monitoring is already {} on {}".format(state, service_name), changed=False)
 
-        client.put('/dedicated/server/%s' % service_name, monitoring=monitoring_bool)
+    client.wrap_call("PUT", f"/dedicated/server/{service_name}", monitoring=monitoring_bool)
 
-        module.exit_json(msg="Monitoring is now {} on {}".format(state, service_name), changed=True)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error), changed=False)
+    module.exit_json(msg="Monitoring is now {} on {}".format(state, service_name), changed=True)
 
 
 def main():

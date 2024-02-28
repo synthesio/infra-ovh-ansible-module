@@ -42,14 +42,8 @@ EXAMPLES = r'''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 import time
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
 
 
 def run_module():
@@ -64,7 +58,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     max_retry = module.params['max_retry']
@@ -74,14 +68,13 @@ def run_module():
         module.exit_json(msg="done - (dry run mode)", changed=False)
 
     for i in range(1, int(max_retry)):
-        try:
-            tasklist = client.get(
-                '/dedicated/server/%s/task' % service_name,
-                function='hardReboot')
-            result = client.get(
-                '/dedicated/server/%s/task/%s' % (service_name, max(tasklist)))
-        except APIError as api_error:
-            return module.fail_jsonl(msg="Failed to call OVH API: {0}".format(api_error))
+        tasklist = client.wrap_call(
+            "GET",
+            f"/dedicated/server/{service_name}/task",
+            function='hardReboot')
+        result = client.wrap_call(
+            "GET",
+            f"/dedicated/server/{service_name}/task/{max(tasklist)}")
 
         message = ""
         # Get details in reboot progression
