@@ -35,13 +35,7 @@ EXAMPLES = r'''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -55,16 +49,13 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     ip = module.params['ip']
     service_name = module.params['service_name']
 
     result = {}
-    try:
-        result = client.get('/ip/%s' % (ip))
-    except APIError as api_error:
-        return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    result = client.wrap_call("GET", f"/ip/{ip}")
 
     try:
         current_service_name = result['routedTo']['serviceName']
@@ -74,19 +65,16 @@ def run_module():
     if current_service_name == service_name:
         module.exit_json(msg="{} already moved to {} !".format(ip, service_name), changed=False)
 
-    try:
-        if module.check_mode:
-            module.exit_json(msg="Move {} to {} done ! - (dry run mode)".format(ip, service_name), changed=True)
+    if module.check_mode:
+        module.exit_json(msg="Move {} to {} done ! - (dry run mode)".format(ip, service_name), changed=True)
 
-        client.post(
-            '/ip/%s/move' % (ip),
-            nexthop=None,
-            to=service_name
-        )
-
-        module.exit_json(msg="{} successfully moved to {} !".format(ip, service_name), changed=True)
-    except APIError as api_error:
-        return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    client.wrap_call(
+        "POST",
+        f"/ip/{ip}/move",
+        nexthop=None,
+        to=service_name
+    )
+    module.exit_json(msg="{} successfully moved to {} !".format(ip, service_name), changed=True)
 
 
 def main():

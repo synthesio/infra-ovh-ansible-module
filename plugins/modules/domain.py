@@ -59,16 +59,9 @@ EXAMPLES = r"""
 RETURN = """ # """
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
-    ovh_api_connect,
+    OVH,
     ovh_argument_spec,
 )
-
-try:
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
 
 
 def run_module():
@@ -107,7 +100,7 @@ def run_module():
     )
 
     module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     value = module.params["value"]
     domain = module.params["domain"]
@@ -127,12 +120,9 @@ def run_module():
             msg=f"{exit_message} ! - (dry run mode)"
         )
 
-    try:
-        existing_records = client.get(
-            f"/domain/zone/{domain}/record", fieldType=record_type, subDomain=name
-        )
-    except APIError as api_error:
-        module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+    existing_records = client.wrap_call(
+        "GET", f"/domain/zone/{domain}/record", fieldType=record_type, subDomain=name
+    )
 
     record_created = []
     record_deleted = []
@@ -150,10 +140,7 @@ def run_module():
     if state == "present":
         if existing_records:
             for record_id in existing_records:
-                try:
-                    record = client.get(f"/domain/zone/{domain}/record/{record_id}")
-                except APIError as api_error:
-                    module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+                record = client.wrap_call("GET", f"/domain/zone/{domain}/record/{record_id}")
                 # If the record exist with the desired value
                 # we can remove the value from the list to be created later
                 if record["target"] in value:
@@ -162,31 +149,23 @@ def run_module():
                 # If the record exist with an unwanted value, and we must not append it,
                 # we will removed it from the zone.
                 elif record["target"] not in value and not append:
-                    try:
-                        client.delete(f"/domain/zone/{domain}/record/{record_id}")
-                    except APIError as api_error:
-                        module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+                    client.wrap_call("DELETE", f"/domain/zone/{domain}/record/{record_id}")
                     record_deleted.append(record["target"])
 
         for v in value:
-            try:
-                client.post(
-                    f"/domain/zone/{domain}/record",
-                    fieldType=record_type,
-                    subDomain=name,
-                    target=v,
-                    ttl=record_ttl,
-                )
-                record_created.append(v)
-            except APIError as api_error:
-                module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+            client.wrap_call(
+                "POST",
+                f"/domain/zone/{domain}/record",
+                fieldType=record_type,
+                subDomain=name,
+                target=v,
+                ttl=record_ttl,
+            )
+            record_created.append(v)
 
         if len(record_deleted) + len(record_created):
             # we must run a refresh on zone after modifications
-            try:
-                client.post(f"/domain/zone/{domain}/refresh")
-            except APIError as api_error:
-                module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+            client.wrap_call("POST", f"/domain/zone/{domain}/refresh")
 
             msg = ""
             if len(record_deleted):
@@ -212,23 +191,14 @@ def run_module():
             )
 
         for record_id in existing_records:
-            try:
-                record = client.get(f"/domain/zone/{domain}/record/{record_id}")
-            except APIError as api_error:
-                module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+            record = client.wrap_call("GET", f"/domain/zone/{domain}/record/{record_id}")
 
             if record["target"] in value:
-                try:
-                    client.delete(f"/domain/zone/{domain}/record/{record_id}")
-                except APIError as api_error:
-                    module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+                client.wrap_call("DELETE", f"/domain/zone/{domain}/record/{record_id}")
                 record_deleted.append(record["target"])
 
         # we must run a refresh on zone after modifications
-        try:
-            client.post(f"/domain/zone/{domain}/refresh")
-        except APIError as api_error:
-            module.fail_json(msg=f"Failed to call OVH API: {api_error}")
+        client.wrap_call("POST", f"/domain/zone/{domain}/refresh")
 
         module.exit_json(
             msg=f"{', '.join(record_deleted)} deleted from record {name}.{domain}",
