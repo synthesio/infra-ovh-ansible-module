@@ -118,11 +118,13 @@ def run_module():
     record_ttl = module.params["record_ttl"]
 
     if module.check_mode:
-        # TODO
-        # This check mode exit is not accurate.
-        # It has to be rewritten to reflect different actions
+        if state == "present":
+            exit_message = f"{record_type} record(s) {name}.{domain} set to {', '.join(value)}"
+        else:
+            exit_message = f"{record_type} record(s) {', '.join(value)} removed from {name}.{domain}"
+
         module.exit_json(
-            msg=f"{', '.join(value)} set to {name}.{domain} ! - (dry run mode)"
+            msg=f"{exit_message} ! - (dry run mode)"
         )
 
     try:
