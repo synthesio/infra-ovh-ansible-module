@@ -53,14 +53,7 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -78,7 +71,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     region = module.params['region']
@@ -91,18 +84,14 @@ def run_module():
                          changed=True)
 
     bucket_list = []
-    try:
-        bucket_list = client.get('/cloud/project/%s/region/%s/storage' % (service_name, region))
-
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    bucket_list = client.wrap_call("GET", f"/cloud/project/{service_name}/region/{region}/storage")
 
     # Search if the bucket exists based on its name amongst all buckets in project
     for bucket in bucket_list:
         if bucket['name'] == name:
-            bucket_details = client.get('/cloud/project/%s/region/%s/storage/%s'
-                                        % (service_name, region, name),
-                                        limit=1000)
+            bucket_details = client.wrap_call("GET",
+                                              f"/cloud/project/{service_name}/region/{region}/storage/{name}",
+                                              limit=1000)
             if state == 'absent':
                 # Bucket needs to be empty to delete it through OVH API
                 if (bucket_details['objectsCount'] != 0):
@@ -112,18 +101,10 @@ def run_module():
                                          **bucket_details)
                     else:  # force == 'true', cleaning bucket up to 1000 objects (max value for OVH API)
                         for bucket_object in bucket_details['objects']:
-                            try:
-                                _ = client.delete('/cloud/project/%s/region/%s/storage/%s/object/%s'
-                                                  % (service_name, region, name, bucket_object['key']))
-
-                            except APIError as api_error:
-                                module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
-                try:
-                    _ = client.delete('/cloud/project/%s/region/%s/storage/%s'
-                                      % (service_name, region, name))
-
-                except APIError as api_error:
-                    module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+                            _ = client.wrap_call("DELETE",
+                                                 f"/cloud/project/{service_name}/region/{region}/storage/{name}/object/{bucket_object['key']}")
+                _ = client.wrap_call("DELETE",
+                                     f"/cloud/project/{service_name}/region/{region}/storage/{name}")
 
                 module.exit_json(msg="Bucket {} ({}) was deleted from OVH public cloud".format(name, region),
                                  changed=True)
@@ -135,15 +116,12 @@ def run_module():
 
     # Bucket does not yet exist on this project
     if state == 'present':
-        try:
-            result = client.post('/cloud/project/%s/region/%s/storage' % (service_name, region),
-                                 name=name)
-            module.exit_json(msg="Bucket {} ({}) was created on OVH public cloud".format(name, result['virtualHost']),
-                             changed=True,
-                             **result)
-
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call("POST",
+                                  f"/cloud/project/{service_name}/region/{region}/storage",
+                                  name=name)
+        module.exit_json(msg="Bucket {} ({}) was created on OVH public cloud".format(name, result['virtualHost']),
+                         changed=True,
+                         **result)
 
     else:  # state == 'absent'
         module.exit_json(msg="Bucket {} ({}) doesn't exist on OVH public cloud ".format(name, region),

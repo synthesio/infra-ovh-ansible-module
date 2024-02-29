@@ -37,13 +37,7 @@ EXAMPLES = r'''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -57,16 +51,13 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     instance_id = module.params['instance_id']
     service_name = module.params['service_name']
-    try:
-        result = client.get('/cloud/project/%s/instance/%s' % (service_name, instance_id))
+    result = client.wrap_call("GET", f"/cloud/project/{service_name}/instance/{instance_id}")
 
-        module.exit_json(changed=False, **result)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    module.exit_json(changed=False, **result)
 
 
 def main():

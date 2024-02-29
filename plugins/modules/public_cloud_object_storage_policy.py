@@ -51,14 +51,7 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -76,7 +69,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     region = module.params['region']
@@ -89,23 +82,15 @@ def run_module():
                          changed=True)
 
     user_list = []
-    try:
-        user_list = client.get('/cloud/project/%s/user' % (service_name))
-
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    user_list = client.wrap_call("GET", f"/cloud/project/{service_name}/user")
 
     # Search user ID in cloud project existing users
     for user in user_list:
         if user['username'] == user_name:
-            try:
-                _ = client.post('/cloud/project/%s/region/%s/storage/%s/policy/%s' % (service_name, region, name, user['id']),
-                                roleName=policy)
-                module.exit_json(msg="Policy {} was applied to user {} on S3 bucket {} ({})".format(policy, user_name, name, region),
-                                 changed=True)
-
-            except APIError as api_error:
-                module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+            _ = client.wrap_call("POST", f"/cloud/project/{service_name}/region/{region}/storage/{name}/policy/{user['id']}",
+                                 roleName=policy)
+            module.exit_json(msg="Policy {} was applied to user {} on S3 bucket {} ({})".format(policy, user_name, name, region),
+                             changed=True)
 
     module.fail_json(msg="User {} was not found on OVH public cloud project {}".format(user_name, service_name),
                      changed=False)

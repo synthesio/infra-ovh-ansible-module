@@ -53,14 +53,7 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -77,7 +70,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     instance_id = module.params['instance_id']
@@ -95,18 +88,14 @@ def run_module():
         # How to manage multiple interfaces ?
         module.fail_json(msg="Removing an interface is not yet implemented")
     if state == 'present':
-        try:
-            result = client.post('/cloud/project/%s/instance/%s/interface' % (service_name, instance_id),
-                                 ip=interface_ip,
-                                 networkId=interface_network_id)
-            module.exit_json(
-                changed=True,
-                msg="Interface has been attached to instance id {}".format(
-                    instance_id),
-                **result)
-
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call("POST", f"/cloud/project/{service_name}/instance/{isinstance}/interface",
+                                  ip=interface_ip,
+                                  networkId=interface_network_id)
+        module.exit_json(
+            changed=True,
+            msg="Interface has been attached to instance id {}".format(
+                instance_id),
+            **result)
 
 
 def main():
