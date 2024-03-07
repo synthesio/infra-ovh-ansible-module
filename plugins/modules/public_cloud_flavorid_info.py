@@ -44,16 +44,9 @@ EXAMPLES = r"""
 RETURN = """ # """
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
-    ovh_api_connect,
+    OVH,
     ovh_argument_spec,
 )
-
-try:
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
 
 
 def run_module():
@@ -67,26 +60,22 @@ def run_module():
     )
 
     module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params["service_name"]
     name = module.params["name"]
     region = module.params["region"]
 
-    try:
-        result = client.get("/cloud/project/%s/flavor" % (service_name), region=region)
-        for f in result:
-            if f["name"] == name:
-                flavor_id = f["id"]
-                available = f["available"]
-                module.exit_json(changed=False, id=flavor_id, availability=available)
+    result = client.wrap_call("GET", f"/cloud/project/{service_name}/flavor", region=region)
+    for f in result:
+        if f["name"] == name:
+            flavor_id = f["id"]
+            available = f["available"]
+            module.exit_json(changed=False, id=flavor_id, availability=available)
 
-        module.fail_json(
-            msg="Flavor {} not found in {}".format(name, region), changed=False
-        )
-
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    module.fail_json(
+        msg="Flavor {} not found in {}".format(name, region), changed=False
+    )
 
 
 def main():

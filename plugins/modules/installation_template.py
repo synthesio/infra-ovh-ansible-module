@@ -41,13 +41,7 @@ import yaml
 import os
 import ast
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -62,7 +56,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     template = module.params['template']
     state = module.params['state']
@@ -73,21 +67,15 @@ def run_module():
     if module.check_mode:
         module.exit_json(msg="template {} is now {} - dry run mode".format(template, state))
 
-    try:
-        template_list = client.get(
-            '/me/installationTemplate'
-        )
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    template_list = client.wrap_call(
+        "GET", "/me/installationTemplate"
+    )
 
     if state == 'absent':
         if src_template in template_list:
-            try:
-                client.delete('/me/installationTemplate/%s' % src_template)
+            client.wrap_call("DELETE", f"/me/installationTemplate/{src_template}")
 
-                module.exit_json(msg="Template {} succesfully deleted".format(src_template), changed=True)
-            except APIError as api_error:
-                module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+            module.exit_json(msg="Template {} succesfully deleted".format(src_template), changed=True)
         else:
             module.exit_json(msg="Template {} does not exists, do not delete it".format(src_template), changed=False)
 
@@ -102,15 +90,13 @@ def run_module():
     if src_template in template_list:
         module.exit_json(msg="Template {} already exists".format(src_template), changed=False)
 
-    try:
-        client.post(
+        client.wrap_call(
+            "POST",
             '/me/installationTemplate',
             baseTemplateName=conf['baseTemplateName'],
             defaultLanguage=conf['defaultLanguage'],
             name=conf['templateName']
         )
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
     templates = {
         'customization': {
@@ -121,30 +107,23 @@ def run_module():
             "useDistributionKernel": conf['useDistributionKernel']},
         'defaultLanguage': conf['defaultLanguage'],
         'templateName': conf['templateName']}
-    try:
-        client.put(
-            '/me/installationTemplate/{}'.format(conf['templateName']),
-            **templates
-        )
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    client.wrap_call(
+        "PUT",
+        f"/me/installationTemplate/{conf['templateName']}",
+        **templates
+    )
 
-    try:
-        client.post(
-            '/me/installationTemplate/{}/partitionScheme'.format(conf['templateName']),
-            name=conf['partitionScheme'],
-            priority=conf['partitionSchemePriority']
-        )
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    client.wrap_call(
+        "POST",
+        f"/me/installationTemplate/{conf['templateName']}/partitionScheme",
+        name=conf['partitionScheme'],
+        priority=conf['partitionSchemePriority']
+    )
 
     if conf['isHardwareRaid']:
-        try:
-            result = client.get(
-                '/dedicated/server/%s/install/hardwareRaidProfile' % service_name
-            )
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call(
+            "GET", f"/dedicated/server/{service_name}/install/hardwareRaidProfile"
+        )
 
         if len(result['controllers']) != 1:
             module.fail_json(
@@ -177,54 +156,46 @@ def run_module():
             # Fallback condition: pass every disk in the array (will be applied for raid0)
             disks = diskarray
 
-        try:
-            result = client.post(
-                '/me/installationTemplate/%s/partitionScheme/%s/hardwareRaid' % (
-                    conf['templateName'], conf['partitionScheme']),
-                disks=disks,
-                mode=conf['raidMode'],
-                name=conf['partitionScheme'],
-                step=1)
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call(
+            "POST",
+            f"/me/installationTemplate/{conf['templateName']}/partitionScheme/{conf['partitionScheme']}/hardwareRaid",
+            disks=disks,
+            mode=conf['raidMode'],
+            name=conf['partitionScheme'],
+            step=1)
 
     partition = {}
     for k in conf['partition']:
         partition = ast.literal_eval(k)
         if 'volumeName' not in partition.keys():
             partition['volumeName'] = ""
-        try:
-            if 'raid' in partition.keys():
-                client.post(
-                    '/me/installationTemplate/%s/partitionScheme/%s/partition' % (
-                        conf['templateName'], conf['partitionScheme']),
-                    filesystem=partition['filesystem'],
-                    mountpoint=partition['mountpoint'],
-                    raid=partition['raid'],
-                    size=partition['size'],
-                    step=partition['step'],
-                    type=partition['type'],
-                    volumeName=partition['volumeName'])
-            else:
-                client.post(
-                    '/me/installationTemplate/%s/partitionScheme/%s/partition' % (
-                        conf['templateName'], conf['partitionScheme']),
-                    filesystem=partition['filesystem'],
-                    mountpoint=partition['mountpoint'],
-                    size=partition['size'],
-                    step=partition['step'],
-                    type=partition['type'],
-                    volumeName=partition['volumeName'])
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
-    try:
-        client.post(
-            '/me/installationTemplate/%s/checkIntegrity' % conf['templateName'])
-        module.exit_json(
-            msg="Template {} succesfully created".format(conf['templateName']),
-            changed=True)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        if 'raid' in partition.keys():
+            client.wrap_call(
+                "POST",
+                f"/me/installationTemplate/{conf['templateName']}/partitionScheme/{conf['partitionScheme']}/partition",
+                filesystem=partition['filesystem'],
+                mountpoint=partition['mountpoint'],
+                raid=partition['raid'],
+                size=partition['size'],
+                step=partition['step'],
+                type=partition['type'],
+                volumeName=partition['volumeName'])
+        else:
+            client.wrap_call(
+                "POST",
+                f"/me/installationTemplate/{conf['templateName']}/partitionScheme/{conf['partitionScheme']}/partition",
+                filesystem=partition['filesystem'],
+                mountpoint=partition['mountpoint'],
+                size=partition['size'],
+                step=partition['step'],
+                type=partition['type'],
+                volumeName=partition['volumeName'])
+    client.wrap_call(
+        "POST",
+        f"/me/installationTemplate/{conf['templateName']}/checkIntegrity")
+    module.exit_json(
+        msg="Template {} succesfully created".format(conf['templateName']),
+        changed=True)
 
 
 def main():

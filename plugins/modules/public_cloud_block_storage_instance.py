@@ -48,14 +48,7 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -71,7 +64,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     instance_id = module.params['instance_id']
@@ -83,40 +76,28 @@ def run_module():
                          changed=True)
 
     volume_details = {}
-    try:
-        volume_details = client.get('/cloud/project/%s/volume/%s' % (service_name, volume_id))
-
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    volume_details = client.wrap_call("GET", f"/cloud/project/{service_name}/volume/{volume_id}")
 
     # Search if the volume exist. Consider you manage a strict nomenclature.
     if instance_id in volume_details['attachedTo'] and state == 'absent':
-        try:
-            result = client.post('/cloud/project/%s/volume/%s/detach' % (service_name, volume_id),
-                                 instanceId=instance_id
-                                 )
-            module.exit_json(
-                changed=True,
-                msg="Volume id {} has been detached from instance id {}".format(
-                    volume_id, instance_id),
-                **result)
-
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call("POST", f"/cloud/project/{service_name}/volume/{volume_id}/detach",
+                                  instanceId=instance_id
+                                  )
+        module.exit_json(
+            changed=True,
+            msg="Volume id {} has been detached from instance id {}".format(
+                volume_id, instance_id),
+            **result)
 
     elif instance_id not in volume_details['attachedTo'] and state == 'present':
-        try:
-            result = client.post('/cloud/project/%s/volume/%s/attach' % (service_name, volume_id),
-                                 instanceId=instance_id
-                                 )
-            module.exit_json(
-                changed=True,
-                msg="Volume id {} has been attached to instance id {}".format(
-                    volume_id, instance_id),
-                **result)
-
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call("POST", f"/cloud/project/{service_name}/volume/{volume_id}/attach",
+                                  instanceId=instance_id
+                                  )
+        module.exit_json(
+            changed=True,
+            msg="Volume id {} has been attached to instance id {}".format(
+                volume_id, instance_id),
+            **result)
 
     else:  # ( if instance_id not in volume_details and state == 'absent' ) or (if instance_id in volume_details and state == 'present' )
         module.exit_json(changed=False, **volume_details)
