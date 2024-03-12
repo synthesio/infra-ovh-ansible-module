@@ -34,9 +34,11 @@ options:
     interface_ip:
         required: true
         description: The fixed IP to set to the interface
-    interface_network_id:
+    interface_openstack_id:
         required: true
-        description: The network id to attache the interface to
+        description:
+            - The network's openstack id to attache the interface to
+            - This is returned by a call to public_cloud_private_network_info.
 '''
 
 EXAMPLES = r'''
@@ -45,7 +47,7 @@ EXAMPLES = r'''
     service_name: "{{ service_name }}"
     instance_id: "{{ instance_id }}"
     interface_ip: "{{ network_vrack.ip }}"
-    interface_network_id: "{{ network_vrack.network_id }}"
+    interface_openstack_id: "{{ network_info.openstack_id }}"
   delegate_to: localhost
   register: interface_metadata
 
@@ -63,7 +65,7 @@ def run_module():
         instance_id=dict(required=True),
         state=dict(choices=['present', 'absent'], default='present'),
         interface_ip=dict(required=True),
-        interface_network_id=dict(required=True)
+        interface_openstack_id=dict(required=True)
     ))
 
     module = AnsibleModule(
@@ -76,11 +78,11 @@ def run_module():
     instance_id = module.params['instance_id']
     state = module.params['state']
     interface_ip = module.params['interface_ip']
-    interface_network_id = module.params['interface_network_id']
+    interface_openstack_id = module.params['interface_openstack_id']
 
     if module.check_mode:
         module.exit_json(msg="Ensure interface {} on {} is {} on instance id {} - (dry run mode)"
-                         .format(interface_ip, interface_network_id, state, instance_id),
+                         .format(interface_ip, interface_openstack_id, state, instance_id),
                          changed=True)
 
     if state == 'absent':
@@ -88,9 +90,9 @@ def run_module():
         # How to manage multiple interfaces ?
         module.fail_json(msg="Removing an interface is not yet implemented")
     if state == 'present':
-        result = client.wrap_call("POST", f"/cloud/project/{service_name}/instance/{isinstance}/interface",
+        result = client.wrap_call("POST", f"/cloud/project/{service_name}/instance/{instance_id}/interface",
                                   ip=interface_ip,
-                                  networkId=interface_network_id)
+                                  networkId=interface_openstack_id)
         module.exit_json(
             changed=True,
             msg="Interface has been attached to instance id {}".format(
