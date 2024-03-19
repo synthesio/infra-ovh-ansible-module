@@ -7,6 +7,7 @@ Tested with:
 - Python 3.9
 - [Python-ovh 1.0](https://github.com/ovh/python-ovh)
 - Ansible 2.12+
+- flake8
 
 ## Collection
 
@@ -19,6 +20,7 @@ ansible-galaxy collection install git+https://github.com/synthesio/infra-ovh-ans
 This collection provides the following modules:
 
 ```text
+dedicated_nasha_manage_partition
 dedicated_server_boot
 dedicated_server_boot_wait
 dedicated_server_display_name
