@@ -101,19 +101,8 @@ changed:
 #    {atime: "off", recordsize: "131072", sync: "disabled"} // {atime: "on", recordsize: "131072", sync: "always"}
 # 1. manage changes in size, description or protocol
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
-    OVH,
-    ovh_argument_spec
-)
-
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 import time
-
-
-try:
-    from ovh.exceptions import APIError, ResourceNotFoundError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
 
 
 def wait_for_tasks_to_complete(client, storage, service, task_id, sleep, max_retry):
@@ -121,19 +110,16 @@ def wait_for_tasks_to_complete(client, storage, service, task_id, sleep, max_ret
     waitForCompletion = True
     while waitForCompletion and i < float(max_retry):
         waitForCompletion = False
-        try:
-            task_info = client.wrap_call(
-                "GET",
-                f"/dedicated/{storage}/{service}/task/{task_id}"
+        task_info = client.wrap_call(
+            "GET",
+            f"/dedicated/{storage}/{service}/task/{task_id}"
+        )
+        if task_info["status"] != "done":
+            waitForCompletion = True
+            print(
+                f"Task {task_id} is in {task_info['status']} status, waiting for its completion...[i:{i}]"
             )
-            if task_info["status"] != "done":
-                waitForCompletion = True
-                print(
-                    f"Task {task_id} is in {task_info['status']} status, waiting for its completion...[i:{i}]"
-                )
-        except APIError:
-            # The taskId does not exist anymore
-            continue
+
         if waitForCompletion:
             time.sleep(float(sleep))
         i += 1
@@ -194,7 +180,6 @@ def run_module():
         "GET",
         "/dedicated/nasha/{0}/partition".format(nas_service_name)
     )
-
 
     # If partition state is absent, we delete it and exit module execution
     if state == "absent" and nas_partition_name in partitions:
@@ -269,7 +254,6 @@ def run_module():
             )
         )
 
-
         # Init nas_partition_snapshot matrix
         nas_partition_snapshot = [
             {'type': 'day-1', 'current_state': 'unknown', 'wanted_state': 'unknown', 'action': ''},
@@ -321,7 +305,6 @@ def run_module():
                             snapshot.get("type"),
                         )
                     )
-
 
                     # Wait for tasks to complete
                     wait_for_tasks_to_complete(
@@ -384,7 +367,6 @@ def run_module():
                 )
             )
             nas_partition_acl_existing.append(nas_partition_acl_existing_acl_properties)
-
 
         nas_partition_acl_wanted = nas_partition_acl
         for acl_wanted in nas_partition_acl_wanted:
@@ -465,7 +447,6 @@ def run_module():
                         sleep,
                         max_retry,
                     )
-
 
         nas_partition_acl_changed = [(item.get('ip'), item.get('action')) for item in nas_partition_acl_wanted if item.get('action') != 'unchanged']
         if len(nas_partition_acl_changed) == 0:
