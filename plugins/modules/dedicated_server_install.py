@@ -34,24 +34,21 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.dedicated_server_install:
+EXAMPLES = r'''
+- name: Install a new dedicated server
+  synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
     template: "debian10_64"
     soft_raid_devices: "2"
-delegate_to: localhost
+    ssh_key_name: "mysshkeyname"
+    partition_scheme_name: "custom"
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -61,33 +58,33 @@ def run_module():
         hostname=dict(required=True),
         template=dict(required=True),
         ssh_key_name=dict(required=False, default=None),
-        soft_raid_devices=dict(required=False, default=None)
+        soft_raid_devices=dict(required=False, default=None),
+        partition_scheme_name=dict(required=False, default="default")
     ))
 
     module = AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     hostname = module.params['hostname']
     template = module.params['template']
     ssh_key_name = module.params['ssh_key_name']
     soft_raid_devices = module.params['soft_raid_devices']
+    partition_scheme_name = module.params['partition_scheme_name']
 
     if module.check_mode:
         module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
                          changed=True)
 
-    try:
-        compatible_templates = client.get(
-            '/dedicated/server/%s/install/compatibleTemplates' % service_name
-        )
-        if template not in compatible_templates["ovh"] and template not in compatible_templates["personal"]:
-            module.fail_json(msg="{} doesn't exist in compatibles templates".format(template))
-    except APIError as api_error:
-        return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    compatible_templates = client.wrap_call(
+        "GET",
+        f"/dedicated/server/{service_name}/install/compatibleTemplates"
+    )
+    if template not in compatible_templates["ovh"] and template not in compatible_templates["personal"]:
+        module.fail_json(msg="{} doesn't exist in compatibles templates".format(template))
 
     details = {"details":
                {"language": "en",
@@ -96,14 +93,11 @@ def run_module():
                 "softRaidDevices": soft_raid_devices}
                }
 
-    try:
-        client.post(
-            '/dedicated/server/%s/install/start' % service_name, **details, templateName=template)
+    client.wrap_call(
+        "POST",
+        f"/dedicated/server/{service_name}/install/start", **details, templateName=template, partitionSchemeName=partition_scheme_name)
 
-        module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(service_name, hostname, template), changed=True)
-
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(service_name, hostname, template), changed=True)
 
 
 def main():

@@ -60,7 +60,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: "Launch install of {{ inventory_hostname }} on public cloud OVH"
   synthesio.ovh.public_cloud_instance:
     name: "{{ inventory_hostname }}"
@@ -76,13 +76,7 @@ EXAMPLES = '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -103,7 +97,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     name = module.params['name']
     service_name = module.params['service_name']
@@ -115,46 +109,39 @@ def run_module():
     monthly_billing = module.params['monthly_billing']
     force_reinstall = module.params['force_reinstall']
 
-    try:
-        instances_list = client.get('/cloud/project/%s/instance' % (service_name),
-                                    region=region)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    instances_list = client.wrap_call("GET",
+                                      f"/cloud/project/{service_name}/instance",
+                                      region=region)
 
     for i in instances_list:
 
         if i['name'] == name:
             instance_id = i['id']
-            instance_details = client.get('/cloud/project/%s/instance/%s' % (service_name, instance_id))
+            instance_details = client.wrap_call("GET", f"/cloud/project/{service_name}/instance/{instance_id}")
 
             if force_reinstall:
-                try:
-                    reinstall_result = client.post(
-                        '/cloud/project/%s/instance/%s/reinstall' % (service_name, instance_id),
-                        imageId=image_id)
-                    module.exit_json(changed=True, **reinstall_result)
-
-                except APIError as api_error:
-                    module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+                reinstall_result = client.wrap_call(
+                    "POST",
+                    f"/cloud/project/{service_name}/instance/{instance_id}/reinstall",
+                    imageId=image_id)
+                module.exit_json(changed=True, **reinstall_result)
 
             module.exit_json(changed=False,
                              msg="Instance {} [{}] in region {} is already installed".format(name, instance_id, region),
                              **instance_details)
 
-    try:
-        result = client.post('/cloud/project/%s/instance' % service_name,
-                             flavorId=flavor_id,
-                             imageId=image_id,
-                             monthlyBilling=monthly_billing,
-                             name=name,
-                             region=region,
-                             networks=networks,
-                             sshKeyId=ssh_key_id
-                             )
+    result = client.wrap_call("POST",
+                              f"/cloud/project/{service_name}/instance",
+                              flavorId=flavor_id,
+                              imageId=image_id,
+                              monthlyBilling=monthly_billing,
+                              name=name,
+                              region=region,
+                              networks=networks,
+                              sshKeyId=ssh_key_id
+                              )
 
-        module.exit_json(changed=True, **result)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    module.exit_json(changed=True, **result)
 
 
 def main():

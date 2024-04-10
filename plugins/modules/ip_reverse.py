@@ -30,23 +30,18 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.ip_reverse:
-  ip: 192.0.2.1
-  reverse: host.domain.example.
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Modify reverse on IP
+  synthesio.ovh.ip_reverse:
+    ip: 192.0.2.1
+    reverse: host.domain.example.
+  delegate_to: localhost
 '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, OVHResourceNotFound, ovh_argument_spec
 import urllib.parse
-
-try:
-    from ovh.exceptions import APIError, ResourceNotFoundError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
 
 
 def run_module():
@@ -61,7 +56,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     ip = module.params['ip']
     reverse = module.params['reverse']
@@ -79,24 +74,22 @@ def run_module():
 
     result = {}
     try:
-        result = client.get('/ip/%s/reverse/%s' % (ip_block, ip))
-    except ResourceNotFoundError:
+        result = client.wrap_call("GET", f"/ip/{ip_block}/reverse/{ip}")
+    except OVHResourceNotFound:
         result['reverse'] = ''
 
     if result['reverse'] == reverse:
         module.exit_json(msg="Reverse {} to {} already set !".format(ip, reverse), changed=False)
 
-    try:
-        client.post(
-            '/ip/%s/reverse' % ip_block,
-            ipReverse=ip,
-            reverse=reverse
-        )
-        module.exit_json(
-            msg="Reverse {} to {} succesfully set !".format(ip, reverse),
-            changed=True)
-    except APIError as api_error:
-        return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    client.wrap_call(
+        "POST",
+        f"/ip/{ip_block}/reverse",
+        ipReverse=ip,
+        reverse=reverse
+    )
+    module.exit_json(
+        msg="Reverse {} to {} succesfully set !".format(ip, reverse),
+        changed=True)
 
 
 def main():

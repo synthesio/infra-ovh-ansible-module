@@ -31,7 +31,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Get image id
   synthesio.ovh.public_cloud_imageid_info:
     service_name: "{{ service_name }}"
@@ -43,13 +43,7 @@ EXAMPLES = '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -64,25 +58,19 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     name = module.params['name']
     region = module.params['region']
 
     # Get images list
-    try:
-        result_image = client.get('/cloud/project/%s/image' % (service_name),
-                                  region=region)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    result_image = client.wrap_call("GET", f"/cloud/project/{service_name}/image",
+                                    region=region)
 
     # Get snapshot list
-    try:
-        result_snapshot = client.get('/cloud/project/%s/snapshot' % (service_name),
-                                     region=region)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    result_snapshot = client.wrap_call("GET", f"/cloud/project/{service_name}/snapshot",
+                                       region=region)
 
     # search in both list
     for i in (result_image + result_snapshot):

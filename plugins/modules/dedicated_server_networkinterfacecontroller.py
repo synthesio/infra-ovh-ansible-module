@@ -25,22 +25,18 @@ options:
 
 '''
 
-EXAMPLES = '''
-synthesio.ovh.dedicated_server_networkinterfacecontroller:
-  link_type: "private"
-  service_name: "{{ service_name }}"
-delegate_to: localhost
+EXAMPLES = r'''
+- name: Retrieve the mac addresses of the dedicated server
+  synthesio.ovh.dedicated_server_networkinterfacecontroller:
+    link_type: "private"
+    service_name: "{{ service_name }}"
+  delegate_to: localhost
+  register: dedicated_macaddress
 '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -54,21 +50,19 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     link_type = module.params['link_type']
     service_name = module.params['service_name']
-    try:
-        result = client.get('/dedicated/server/%s/networkInterfaceController?linkType=%s' % (service_name, link_type))
-        # XXX: This is a hack, would be better to detect what kind of server you are using:
-        # If there is no result, maybe you have a server with multiples network interfaces on the same link (2x public + 2x vrack), like HGR
-        # In this case, retry with public_lag/private_lag linkType
-        if not result:
-            result = client.get('/dedicated/server/%s/networkInterfaceController?linkType=%s_lag' % (service_name, link_type))
 
-        module.exit_json(changed=False, msg=result)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController?linkType={link_type}")
+    # XXX: This is a hack, would be better to detect what kind of server you are using:
+    # If there is no result, maybe you have a server with multiples network interfaces on the same link (2x public + 2x vrack), like HGR
+    # In this case, retry with public_lag/private_lag linkType
+    if not result:
+        result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController?linkType={link_type}_lag")
+
+    module.exit_json(changed=False, msg=result)
 
 
 def main():

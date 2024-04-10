@@ -69,14 +69,7 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -97,7 +90,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     region = module.params['region']
@@ -114,29 +107,22 @@ def run_module():
                          changed=True)
 
     volume_list = []
-    try:
-        volume_list = client.get('/cloud/project/%s/volume' % service_name,
-                                 region=region
-                                 )
-
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))  # show error message and exit
+    volume_list = client.wrap_call("GET",
+                                   f"/cloud/project/{service_name}/volume",
+                                   region=region
+                                   )
 
     # Search if the volume exist. Consider you manage a strict nomenclature based on name.
     for volume in volume_list:
         if volume['name'] == name:
             volume_id = volume['id']
-            volume_details = client.get('/cloud/project/%s/volume/%s' % (service_name, volume_id))
+            volume_details = client.wrap_call("GET", f"/cloud/project/{service_name}/volume/{volume_id}")
             if state == 'absent':
-                try:
-                    _ = client.delete('/cloud/project/%s/volume/%s' % (service_name, volume_id))
-                    module.exit_json(
-                        msg="Volume {} ({}), has been deleted from cloud".format(
-                            name, volume_id),
-                        changed=True)
-
-                except APIError as api_error:
-                    module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+                _ = client.wrap_call("DELETE", f"/cloud/project/{service_name}/volume/{volume_id}")
+                module.exit_json(
+                    msg="Volume {} ({}), has been deleted from cloud".format(
+                        name, volume_id),
+                    changed=True)
 
             else:  # state == 'present':
                 module.exit_json(
@@ -146,24 +132,21 @@ def run_module():
                     **volume_details)
 
     if state == 'present':
-        try:
-            result = client.post('/cloud/project/%s/volume' % service_name,
-                                 description=description,
-                                 imageId=image_id,
-                                 name=name,
-                                 region=region,
-                                 size=size,
-                                 snapshotId=snapshot_id,
-                                 type=volume_type
-                                 )
-            module.exit_json(
-                msg="Volume {} ({}), has been created on OVH public Cloud".format(
-                    name, result['id']),
-                changed=True,
-                **result)
-
-        except APIError as api_error:
-            module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+        result = client.wrap_call("POST",
+                                  f"/cloud/project/{service_name}/volume",
+                                  description=description,
+                                  imageId=image_id,
+                                  name=name,
+                                  region=region,
+                                  size=size,
+                                  snapshotId=snapshot_id,
+                                  type=volume_type
+                                  )
+        module.exit_json(
+            msg="Volume {} ({}), has been created on OVH public Cloud".format(
+                name, result['id']),
+            changed=True,
+            **result)
 
     else:  # state == 'absent'
         module.exit_json(

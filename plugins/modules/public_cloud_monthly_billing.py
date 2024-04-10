@@ -26,7 +26,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: Enable monthly billing
   synthesio.ovh.public_cloud_monthly_billing:
     service_name: "{{ service_name }}"
@@ -36,13 +36,7 @@ EXAMPLES = '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -57,7 +51,7 @@ def run_module():
         supports_check_mode=True
     )
 
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     service_name = module.params['service_name']
     instance_id = module.params['instance_id']
@@ -65,15 +59,12 @@ def run_module():
     if module.check_mode:
         module.exit_json(msg="Monthly Billing enabled on {} ! - (dry run mode)".format(instance_id), changed=True)
 
-    try:
-        result = client.get('/cloud/project/%s/instance/%s' % (service_name, instance_id))
-        if result['monthlyBilling'] is not None and result['monthlyBilling']['status'] == "ok":
-            module.exit_json(changed=False, msg="Monthly billing already enabled")
+    result = client.wrap_call("GET", f"/cloud/project/{service_name}/instance/{instance_id}")
+    if result['monthlyBilling'] is not None and result['monthlyBilling']['status'] == "ok":
+        module.exit_json(changed=False, msg="Monthly billing already enabled")
 
-        result = client.post('/cloud/project/%s/instance/%s/activeMonthlyBilling' % (service_name, instance_id))
+        result = client.wrap_call("POST", f"/cloud/project/{service_name}/instance/{instance_id}/activeMonthlyBilling")
         module.exit_json(changed=True, **result)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
 
 
 def main():

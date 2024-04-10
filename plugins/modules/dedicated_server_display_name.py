@@ -26,7 +26,7 @@ options:
 
 '''
 
-EXAMPLES = '''
+EXAMPLES = r'''
 - name: "Set display name to {{ display_name }} on server {{ ovhname }}"
   synthesio.ovh.dedicated_server_display_name:
     service_name: "{{ ovhname }}"
@@ -36,13 +36,7 @@ EXAMPLES = '''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import ovh_api_connect, ovh_argument_spec
-
-try:
-    from ovh.exceptions import APIError
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
 def run_module():
@@ -56,7 +50,7 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     display_name = module.params['display_name']
     service_name = module.params['service_name']
@@ -64,26 +58,22 @@ def run_module():
     if module.check_mode:
         module.exit_json(msg="display_name has been set to {} ! - (dry run mode)".format(display_name), changed=True)
 
-    try:
-        result = client.get('/dedicated/server/%s/serviceInfos' % service_name)
-    except APIError as api_error:
-        return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    result = client.wrap_call("GET", f"/dedicated/server/{service_name}/serviceInfos")
 
     service_id = result["serviceId"]
     resource = {
         "resource": {
             'displayName': display_name,
             'name': service_name}}
-    try:
-        client.put(
-            '/service/%s' % service_id,
-            **resource
-        )
-        module.exit_json(
-            msg="displayName succesfully set to {} for {} !".format(display_name, service_name),
-            changed=True)
-    except APIError as api_error:
-        return module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    client.wrap_call(
+        "PUT",
+        f"/service/{service_id}",
+        **resource
+    )
+    module.exit_json(
+        msg="displayName succesfully set to {} for {} !".format(display_name, service_name),
+        changed=True)
 
 
 def main():

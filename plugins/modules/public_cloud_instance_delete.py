@@ -44,16 +44,9 @@ EXAMPLES = """
 RETURN = """ # """
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
-    ovh_api_connect,
+    OVH,
     ovh_argument_spec,
 )
-
-try:
-    from ovh.exceptions import APIError
-
-    HAS_OVH = True
-except ImportError:
-    HAS_OVH = False
 
 
 def run_module():
@@ -66,35 +59,30 @@ def run_module():
         )
     )
     module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
-    client = ovh_api_connect(module)
+    client = OVH(module)
 
     name = module.params["name"]
     service_name = module.params["service_name"]
     region = module.params["region"]
-    try:
-        instances_list = client.get(
-            "/cloud/project/%s/instance" % (service_name), region=region
-        )
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+
+    instances_list = client.wrap_call(
+        "GET", f"/cloud/project/{service_name}/instance", region=region
+    )
 
     for i in instances_list:
 
         if i["name"] == name:
             instance_id = i["id"]
-            instance_details = client.get(
-                "/cloud/project/%s/instance/%s" % (service_name, instance_id)
+            instance_details = client.wrap_call(
+                "GET", f"/cloud/project/{service_name}/instance/{instance_id}"
             )
             if instance_details["status"] == "ACTIVE":
                 module.fail_json(msg="Instance must not be active to be deleted", changed=False)
 
-    try:
-        client.delete(
-            "/cloud/project/%s/instance/%s" % (service_name, instance_id)
-        )
-        module.exit_json(changed=True)
-    except APIError as api_error:
-        module.fail_json(msg="Failed to call OVH API: {0}".format(api_error))
+    client.wrap_call(
+        "DELETE", f"/cloud/project/{service_name}/instance/{instance_id}"
+    )
+    module.exit_json(changed=True)
 
 
 def main():

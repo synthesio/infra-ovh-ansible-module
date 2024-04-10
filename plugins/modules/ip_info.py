@@ -9,25 +9,31 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: dedicated_server_info
-short_description: Retrieve all info for a OVH dedicated server
+module: ip_info
+short_description: Retrieve all info for a given OVH IP
 description:
-    - This module retrieves all info for a OVH dedicated server
-author: Maxime Dupré
+    - Retrieve all info for a given OVH IP
+author: Erwan Ben Souiden
 requirements:
     - ovh >= 0.5.0
 options:
-    service_name:
+    ip:
         required: true
-        description: The service_name
+        description: The ip
 '''
 
 EXAMPLES = r'''
-- name: Retrieve all info for an OVH dedicated server
-  synthesio.ovh.dedicated_server_info:
-    service_name: "{{ service_name }}"
+- name: Get IP details
+  synthesio.ovh.ip_info:
+    ip: "192.0.2.1"
+  register: ip_info
   delegate_to: localhost
-  register: dedicated_info
+
+- debug:
+    msg: "{{ ip_info }}"
+
+- debug:
+    msg: "{{ ip_info['isAdditionalIp'] }}"
 '''
 
 RETURN = ''' # '''
@@ -38,7 +44,7 @@ from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        service_name=dict(required=True)
+        ip=dict(required=True)
     ))
 
     module = AnsibleModule(
@@ -47,8 +53,8 @@ def run_module():
     )
     client = OVH(module)
 
-    service_name = module.params['service_name']
-    result = client.wrap_call("GET", f"/dedicated/server/{service_name}")
+    ip = module.params['ip']
+    result = client.wrap_call("GET", f"/ip/{ip}")
 
     module.exit_json(changed=False, **result)
 
