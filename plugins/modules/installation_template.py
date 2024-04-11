@@ -90,13 +90,13 @@ def run_module():
     if src_template in template_list:
         module.exit_json(msg="Template {} already exists".format(src_template), changed=False)
 
-        client.wrap_call(
-            "POST",
-            '/me/installationTemplate',
-            baseTemplateName=conf['baseTemplateName'],
-            defaultLanguage=conf['defaultLanguage'],
-            name=conf['templateName']
-        )
+    client.wrap_call(
+        "POST",
+        '/me/installationTemplate',
+        baseTemplateName=conf['baseTemplateName'],
+        defaultLanguage=conf['defaultLanguage'],
+        name=conf['templateName']
+    )
 
     templates = {
         'customization': {
