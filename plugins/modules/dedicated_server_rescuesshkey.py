@@ -59,7 +59,7 @@ def run_module():
 
     server_state = client.wrap_call("GET", f"/dedicated/server/{service_name}")
 
-    if server_state['monitoring'] == ssh_key:
+    if server_state['rescueSshKey'] == ssh_key:
         module.exit_json(msg="Ssh key is already set on {}".format(service_name), changed=False)
 
     client.wrap_call("PUT", f"/dedicated/server/{service_name}", rescueSshKey=ssh_key)
