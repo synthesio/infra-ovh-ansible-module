@@ -1,5 +1,6 @@
 [flake8]
 # https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_documenting.html
 # Ignore "Module level import not at top of file (E402)"
-ignore=E402
+# Use `docker run -ti --rm -v $(pwd):/apps alpine/flake8 -v plugins/modules/*` to validate
+ignore=E402,W503
 max-line-length = 150
