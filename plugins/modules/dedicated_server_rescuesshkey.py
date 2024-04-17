@@ -12,7 +12,7 @@ module: dedicated_server_rescuesshkey
 short_description: Set the ssh key for access in rescue mode
 description:
     - Set the ssh key for access in rescue mode in a dedicated server
-author: Synthesio SRE Team
+author: Marco Sarti 
 requirements:
     - ovh >= 0.5.0
 options:
