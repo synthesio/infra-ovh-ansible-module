@@ -19,7 +19,7 @@ requirements:
 options:
     service_name:
         required: true
-        description: The service_name
+        description: The service name
 '''
 
 EXAMPLES = r'''
@@ -27,7 +27,7 @@ EXAMPLES = r'''
   synthesio.ovh.vps_info:
     service_name: "{{ service_name }}"
   delegate_to: localhost
-  register: dedicated_info
+  register: vps_info
 '''
 
 RETURN = ''' # '''
