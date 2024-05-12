@@ -62,9 +62,9 @@ def run_module():
         'displayName': display_name
         }
 
-    # Retrieve the current values for displayName, keymap and netbootMode
+    # Endpoint /vps/{service_name} retrieves (among others) the current value for displayName
 
-    getResult=client.wrap_call(
+    get_result=client.wrap_call(
         "GET",
         f"/vps/{service_name}",
         **resource
@@ -73,19 +73,14 @@ def run_module():
     # Now check if the value is different and if necessary set it
     
     if getResult['displayName'] != display_name:
-        putResult=client.wrap_call(
+        client.wrap_call(
             "PUT",
             f"/vps/{service_name}",
             **resource
         )
-        if putResult == None:
-            module.exit_json(
-                msg="displayName succesfully set to {} for {} !".format(display_name, service_name),
-                changed=True)
-        else:
-            module.fail_json(
-                msg="Error setting displayName for {} !".format(service_name)
-                )
+        module.exit_json(
+            msg="displayName succesfully set to {} for {} !".format(display_name, service_name),
+            changed=True)
     else:
         module.exit_json(
             msg="No change required to displayName {} for {} !".format(display_name, service_name),
