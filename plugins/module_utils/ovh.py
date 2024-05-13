@@ -93,6 +93,8 @@ class OVH:
         try:
             return self.client.call(verb, path, kwargs, _need_auth)
 
+        except ResourceNotFoundError:
+            raise OVHResourceNotFound
         except InvalidKey as e:
             self.module.fail_json(
                 msg=f"Key {self.client._application_key}: {e}"
@@ -107,5 +109,3 @@ class OVH:
             self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
         except APIError as e:
             self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
-        except ResourceNotFoundError:
-            raise OVHResourceNotFound
