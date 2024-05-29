@@ -103,9 +103,11 @@ def run_module():
             "postInstallationScriptLink": conf['postInstallationScriptLink'],
             "postInstallationScriptReturn": conf['postInstallationScriptReturn'],
             "sshKeyName": conf['sshKeyName'],
-            "useDistributionKernel": conf['useDistributionKernel']},
-        'defaultLanguage': conf['defaultLanguage'],
-        'templateName': conf['templateName']}
+            "useDistributionKernel": conf['useDistributionKernel']
+            },
+        'templateName': conf['templateName']
+        }
+
     client.wrap_call(
         "PUT",
         f"/me/installationTemplate/{conf['templateName']}",
