@@ -94,7 +94,6 @@ def run_module():
         "POST",
         '/me/installationTemplate',
         baseTemplateName=conf['baseTemplateName'],
-        defaultLanguage=conf['defaultLanguage'],
         name=conf['templateName']
     )
 
