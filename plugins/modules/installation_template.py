@@ -104,9 +104,9 @@ def run_module():
             "postInstallationScriptReturn": conf['postInstallationScriptReturn'],
             "sshKeyName": conf['sshKeyName'],
             "useDistributionKernel": conf['useDistributionKernel']
-            },
+        },
         'templateName': conf['templateName']
-        }
+    }
 
     client.wrap_call(
         "PUT",
