@@ -60,19 +60,18 @@ def run_module():
 
     resource = {
         'displayName': display_name
-        }
+    }
 
     # Endpoint /vps/{service_name} retrieves (among others) the current value for displayName
 
-    get_result=client.wrap_call(
+    get_result = client.wrap_call(
         "GET",
         f"/vps/{service_name}",
         **resource
     )
 
     # Now check if the value is different and if necessary set it
-    
-    if getResult['displayName'] != display_name:
+    if get_result['displayName'] != display_name:
         client.wrap_call(
             "PUT",
             f"/vps/{service_name}",
@@ -85,6 +84,7 @@ def run_module():
         module.exit_json(
             msg="No change required to displayName {} for {} !".format(display_name, service_name),
             changed=False)
+
 
 def main():
     run_module()
