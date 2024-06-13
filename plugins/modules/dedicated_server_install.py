@@ -31,6 +31,9 @@ options:
     soft_raid_devices:
         required: false
         description: number of devices in the raid software
+    user_metadata:
+        required: false
+        description: list of key,value objects metadata
 
 '''
 
@@ -43,6 +46,9 @@ EXAMPLES = r'''
     soft_raid_devices: "2"
     ssh_key_name: "mysshkeyname"
     partition_scheme_name: "custom"
+    user_metadata:
+        - key: sshKey
+          value: "ssh-ed25519 AAAAC3 ..."
   delegate_to: localhost
 '''
 
@@ -59,7 +65,8 @@ def run_module():
         template=dict(required=True),
         ssh_key_name=dict(required=False, default=None),
         soft_raid_devices=dict(required=False, default=None),
-        partition_scheme_name=dict(required=False, default="default")
+        partition_scheme_name=dict(required=False, default="default"),
+        user_metadata=dict(type="list", requirements=False, default=None)
     ))
 
     module = AnsibleModule(
@@ -74,6 +81,7 @@ def run_module():
     ssh_key_name = module.params['ssh_key_name']
     soft_raid_devices = module.params['soft_raid_devices']
     partition_scheme_name = module.params['partition_scheme_name']
+    user_metadata = module.params['user_metadata']
 
     if module.check_mode:
         module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
@@ -95,7 +103,12 @@ def run_module():
 
     client.wrap_call(
         "POST",
-        f"/dedicated/server/{service_name}/install/start", **details, templateName=template, partitionSchemeName=partition_scheme_name)
+        f"/dedicated/server/{service_name}/install/start",
+        **details,
+        templateName=template,
+        partitionSchemeName=partition_scheme_name,
+        userMetadata=user_metadata,
+    )
 
     module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(service_name, hostname, template), changed=True)
 
