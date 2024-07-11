@@ -29,23 +29,29 @@ dedicated_server_install
 dedicated_server_install_wait
 dedicated_server_monitoring
 dedicated_server_networkinterfacecontroller
+dedicated_server_rescuesshkey
 dedicated_server_terminate
 dedicated_server_vrack
 domain
 installation_template
-ip_move
 ip_info
+ip_move
 ip_reverse
+me_sshkey
+public_cloud_block_storage
+public_cloud_block_storage_instance
 public_cloud_flavorid_info
 public_cloud_imageid_info
-public_cloud_instance_info
 public_cloud_instance
 public_cloud_instance_delete
+public_cloud_instance_info
+public_cloud_instance_interface
 public_cloud_monthly_billing
-public_cloud_block_storage_instance
-public_cloud_block_storage
 public_cloud_object_storage
 public_cloud_object_storage_policy
+public_cloud_private_network_info
+vps_display_name
+vps_info
 ```
 
 You can read the documentation of every modules with `ansible-doc synthesio.ovh.$modules`
