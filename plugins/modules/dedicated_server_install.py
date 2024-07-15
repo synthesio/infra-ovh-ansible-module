@@ -84,7 +84,7 @@ def run_module():
     user_metadata = module.params['user_metadata']
 
     if module.check_mode:
-        module.exit_json(msg="Installation in progress on {} as {} with template {} - (dry run mode)".format(service_name, hostname, template),
+        module.exit_json(msg=f"Installation in progress on {service_name} as {hostname} with template {template} - (dry run mode)",
                          changed=True)
 
     compatible_templates = client.wrap_call(
@@ -92,7 +92,7 @@ def run_module():
         f"/dedicated/server/{service_name}/install/compatibleTemplates"
     )
     if template not in compatible_templates["ovh"] and template not in compatible_templates["personal"]:
-        module.fail_json(msg="{} doesn't exist in compatibles templates".format(template))
+        module.fail_json(msg="f{template} doesn't exist in compatibles templates")
 
     details = {"details":
                {"language": "en",
@@ -110,7 +110,7 @@ def run_module():
         userMetadata=user_metadata,
     )
 
-    module.exit_json(msg="Installation in progress on {} as {} with template {}!".format(service_name, hostname, template), changed=True)
+    module.exit_json(msg=f"Installation in progress on {service_name} as {hostname} with template {template}!", changed=True)
 
 
 def main():
