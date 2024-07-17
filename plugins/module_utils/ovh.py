@@ -100,11 +100,9 @@ class OVH:
                 msg=f"Key {self.client._application_key}: {e}"
             )
         except BadParametersError as e:
-            self.module.fail_json(msg=f"Invalid application_secret: {e}")
+            self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
         except NotGrantedCall as e:
-            self.module.fail_json(
-                msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}"
-            )
+            self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
         except HTTPError as e:
             self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
         except APIError as e:
