@@ -21,7 +21,7 @@ options:
         required: true
         description:
             - The name of the ssh key to create
-    public_key:
+    public_cloud_ssh_key:
         required: true
         description:
             - The public key to upload
@@ -39,7 +39,7 @@ EXAMPLES = r'''
 - name: "Create a new ssh key on public cloud OVH"
   synthesio.ovh.public_cloud_sshkey:
     name: "{{ sshkey_name }}"
-    public_key: "{{ sshkey_public_key }}"
+    public_cloud_ssh_key: "{{ sshkey_key }}"
     service_name: "{{ service_name }}"
     region: "{{ region }}"
   delegate_to: localhost
@@ -55,7 +55,7 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         name=dict(required=True),
-        public_key=dict(required=True),
+        public_cloud_ssh_key=dict(required=True),
         region=dict(required=False, default=None),
         service_name=dict(required=True)
     ))
@@ -68,7 +68,7 @@ def run_module():
 
     name = module.params['name']
     service_name = module.params['service_name']
-    public_key = module.params['public_key']
+    public_cloud_ssh_key = module.params['public_cloud_ssh_key']
     region = module.params['region']
 
     sshkey_list = client.wrap_call(
@@ -79,13 +79,13 @@ def run_module():
 
         if k['name'] == name:
             module.exit_json(changed=False,
-                             msg="Key {} is already present".format(name))
+                             msg=f"Key {name} is already present")
 
     result = client.wrap_call("POST",
                               f"/cloud/project/{service_name}/sshkey",
                               name=name,
                               region=region,
-                              publicKey=public_key
+                              publicKey=public_cloud_ssh_key
                               )
 
     module.exit_json(changed=True, **result)
