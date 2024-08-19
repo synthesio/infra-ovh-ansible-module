@@ -70,7 +70,7 @@ def run_module():
         ssh_key_name=dict(required=False, default=None),
         soft_raid_devices=dict(required=False, default=None),
         partition_scheme_name=dict(required=False, default="default"),
-        raid=dict(choices=['enabled', 'disabled'], default='enabled'),
+        raid=dict(choices=['enabled', 'disabled'], default='enabled', required=False),
         user_metadata=dict(type="list", requirements=False, default=None)
     ))
 
