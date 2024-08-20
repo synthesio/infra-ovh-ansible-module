@@ -110,7 +110,7 @@ def run_module():
                 "customHostname": hostname,
                 "sshKeyName": ssh_key_name,
                 "softRaidDevices": soft_raid_devices,
-                "noRaid": no_raid }
+                "noRaid": no_raid}
                }
 
     client.wrap_call(
