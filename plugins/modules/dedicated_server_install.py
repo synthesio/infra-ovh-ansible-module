@@ -34,6 +34,9 @@ options:
     user_metadata:
         required: false
         description: list of key,value objects metadata
+    raid:
+        required: false
+        description: enable (md) or disable (jbod) software raid
 
 '''
 
@@ -44,6 +47,7 @@ EXAMPLES = r'''
     hostname: "server01.example.net"
     template: "debian10_64"
     soft_raid_devices: "2"
+    raid: "enabled"
     ssh_key_name: "mysshkeyname"
     partition_scheme_name: "custom"
     user_metadata:
@@ -66,6 +70,7 @@ def run_module():
         ssh_key_name=dict(required=False, default=None),
         soft_raid_devices=dict(required=False, default=None),
         partition_scheme_name=dict(required=False, default="default"),
+        raid=dict(choices=['enabled', 'disabled'], default='enabled', required=False),
         user_metadata=dict(type="list", requirements=False, default=None)
     ))
 
@@ -80,6 +85,7 @@ def run_module():
     template = module.params['template']
     ssh_key_name = module.params['ssh_key_name']
     soft_raid_devices = module.params['soft_raid_devices']
+    raid = module.params['raid']
     partition_scheme_name = module.params['partition_scheme_name']
     user_metadata = module.params['user_metadata']
 
@@ -94,11 +100,17 @@ def run_module():
     if template not in compatible_templates["ovh"] and template not in compatible_templates["personal"]:
         module.fail_json(msg="f{template} doesn't exist in compatibles templates")
 
+    if raid == 'enabled':
+        no_raid = False
+    elif raid == 'disabled':
+        no_raid = True
+
     details = {"details":
                {"language": "en",
                 "customHostname": hostname,
                 "sshKeyName": ssh_key_name,
-                "softRaidDevices": soft_raid_devices}
+                "softRaidDevices": soft_raid_devices,
+                "noRaid": no_raid}
                }
 
     client.wrap_call(
