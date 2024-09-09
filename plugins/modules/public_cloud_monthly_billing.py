@@ -63,8 +63,8 @@ def run_module():
     if result['monthlyBilling'] is not None and result['monthlyBilling']['status'] == "ok":
         module.exit_json(changed=False, msg="Monthly billing already enabled")
 
-        result = client.wrap_call("POST", f"/cloud/project/{service_name}/instance/{instance_id}/activeMonthlyBilling")
-        module.exit_json(changed=True, **result)
+    result = client.wrap_call("POST", f"/cloud/project/{service_name}/instance/{instance_id}/activeMonthlyBilling")
+    module.exit_json(changed=True, **result)
 
 
 def main():
