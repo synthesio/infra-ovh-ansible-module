@@ -94,20 +94,22 @@ def run_module():
 
     try:
 
-        accounts = client.get(
+        accounts = client.wrap_call(
+            "GET",
             '/email/domain/%s/account' % domain,
         )
         if account in accounts:
             if module.params['state'] == 'present':
                 module.exit_json(msg="{}@{} already exists".format(account, domain), changed=False)
             else:
-                result = client.delete('/email/domain/%s/account/%s' % (domain, account))
+                result = client.wrap_call("DELETE", '/email/domain/%s/account/%s' % (domain, account))
                 module.exit_json(msg="{}@{} succesfully deleted".format(account, domain), result=result, changed=True)
         else:
             if module.params['state'] == 'absent':
                 module.exit_json(msg="{}@{} does not exist".format(account, domain), changed=False)
             else:
-                result = client.post(
+                result = client.wrap_call(
+                    "POST",
                     '/email/domain/%s/account' % domain,
                     accountName=account,
                     password=password,
