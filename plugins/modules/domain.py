@@ -64,25 +64,34 @@ from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
 )
 
 
-def validate_record(existing_records, state, client,
+def validate_record(existing_records, client,
                     record_type, name, domain, value):
     '''
     Verify if an existing record match the desired record.
     Returning the exit message used for the module exit.
     '''
+    # We can have multiple records with different values for the same domain name.
+    # Build a list of those values to compare with the one we want.
+    existing_values = list()
     for record_id in existing_records:
         record = client.wrap_call("GET", f"/domain/zone/{domain}/record/{record_id}")
-        if record["target"] in value:
-            if state == "present":
-                exit_message = f"{record_type} record {name}.{domain} already set to  {', '.join(value)}. No changes."
-            else:
-                exit_message = f"{record_type} record {name}.{domain} value {', '.join(value)} should be removed. Changes needed."
-        else:
-            if state == "present":
-                exit_message = f"{record_type} record {name}.{domain} should be {', '.join(value)}. Changes needed."
-            else:
-                exit_message = f"{record_type} record {name}.{domain}: value ({', '.join(value)}) is absent. No changes."
-    return exit_message
+        existing_values.append(record['target'].replace('"', ''))
+
+    # Compare lists of values
+    to_delete = [x for x in existing_values + value if x not in value]
+    to_add = [x for x in existing_values + value if x not in existing_values]
+
+    pre_message = f"{record_type} record {name}.{domain}"
+    message = " "
+    if to_delete:
+        message = message + f"value {', '.join(to_delete)} should be removed. Changes needed."
+    if to_add:
+        message = message + f"{record_type} record {name}.{domain} should be {', '.join(to_add)}. Changes needed."
+
+    if not to_delete and not to_add:
+        message = f" already set to  {', '.join(value)}. No changes."
+
+    return pre_message + message
 
 
 def run_module():
@@ -138,15 +147,15 @@ def run_module():
     if module.check_mode:
         # Check for existing records
         if existing_records:
-            exit_message = validate_record(existing_records, state, client,
+            exit_message = validate_record(existing_records, client,
                                            record_type, name, domain, value)
 
         else:
             exit_message = f"{record_type} record {', '.join(value)} absent from {name}.{domain}."
             if state == "present":
-                exit_message = exit_message + "Changes needed."
+                exit_message = exit_message + " Changes needed."
             else:
-                exit_message = exit_message + "No changes."
+                exit_message = exit_message + " No changes."
 
         module.exit_json(
             msg=f"(dry run mode) {exit_message}"
