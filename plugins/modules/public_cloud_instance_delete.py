@@ -30,6 +30,11 @@ options:
         required: true
         description:
             - The region where the instance is deployed
+    florce_delete:
+        required: false
+        description:
+            - Force not ACTIVE istances deletion
+    
 """
 
 EXAMPLES = """
@@ -56,6 +61,7 @@ def run_module():
             name=dict(required=True),
             service_name=dict(required=True),
             region=dict(required=True),
+            force_delete=dict(required=False, default=False)
         )
     )
     module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
@@ -64,6 +70,7 @@ def run_module():
     name = module.params["name"]
     service_name = module.params["service_name"]
     region = module.params["region"]
+    force_delete = module.params["force_delete"]
 
     instances_list = client.wrap_call(
         "GET", f"/cloud/project/{service_name}/instance", region=region
@@ -76,7 +83,7 @@ def run_module():
             instance_details = client.wrap_call(
                 "GET", f"/cloud/project/{service_name}/instance/{instance_id}"
             )
-            if instance_details["status"] == "ACTIVE":
+            if instance_details["status"] == "ACTIVE" and not force_delete::
                 module.fail_json(msg="Instance must not be active to be deleted", changed=False)
 
     client.wrap_call(
