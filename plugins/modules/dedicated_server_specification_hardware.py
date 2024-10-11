@@ -9,11 +9,11 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: dedicated_server_info
-short_description: Retrieve all info for a OVH dedicated server
+module: dedicated_server_specification_hardware
+short_description: Retrieve all hardware specification for a OVH dedicated server
 description:
-    - This module retrieves all info for a OVH dedicated server
-author: Maxime Dupré
+    - This module retrieves all hardware information for a OVH dedicated server
+author: Saul Bertuccio
 requirements:
     - ovh >= 0.5.0
 options:
@@ -23,17 +23,16 @@ options:
 '''
 
 EXAMPLES = r'''
-- name: Retrieve all info for an OVH dedicated server
+- name: Retrieve all hardwared information for an OVH dedicated server
   synthesio.ovh.dedicated_server_info:
     service_name: "{{ service_name }}"
   delegate_to: localhost
-  register: dedicated_info
+  register: dedicated_hardware
 '''
 
 RETURN = ''' # '''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
-
 
 def run_module():
     module_args = ovh_argument_spec()
@@ -48,7 +47,7 @@ def run_module():
     client = OVH(module)
 
     service_name = module.params['service_name']
-    result = client.wrap_call("GET", f"/dedicated/server/{service_name}")
+    result = client.wrap_call("GET", f"/dedicated/server/{service_name}/specifications/hardware")
 
     module.exit_json(changed=False, **result)
 
