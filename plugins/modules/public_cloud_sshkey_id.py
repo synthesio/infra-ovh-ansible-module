@@ -20,7 +20,7 @@ options:
     service_name:
         required: true
         description: The service name
-    sshkey_name:
+    public_cloud_sshkey_name:
         required: true
         description: The sshkey name
 
@@ -29,7 +29,7 @@ options:
 EXAMPLES = r"""
 - name: Get the id of a OVH public cloud sshkey
   synthesio.ovh.public_cloud_sshkey_id:
-    sshkey_name: "{{ sshkey_name }}"
+    public_cloud_sshkey_name: "{{ public_cloud_sshkey_name }}"
     service_name: "{{ service_name }}"
   delegate_to: localhost
   register: sshkey_id
@@ -53,14 +53,14 @@ def run_module():
     module_args.update(
         dict(
             service_name=dict(required=True),
-            sshkey_name=dict(required=True),
+            public_cloud_sshkey_name=dict(required=True),
         )
     )
 
     module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
     client = OVH(module)
 
-    sshkey_name = module.params["sshkey_name"]
+    public_cloud_sshkey_name = module.params["public_cloud_sshkey_name"]
     service_name = module.params["service_name"]
 
     sshkey_id = False
@@ -70,13 +70,13 @@ def run_module():
     )
 
     for sshkey in sshkeys_list:
-        if sshkey["name"] == sshkey_name:
+        if sshkey["name"] == public_cloud_sshkey_name:
             sshkey_id = sshkey["id"]
 
     # Exit if no key were found
     if not sshkey_id:
         module.fail_json(
-            msg=f"No ssh key {sshkey_name} found", changed=False
+            msg=f"No ssh key {public_cloud_sshkey_name} found", changed=False
         )
 
     module.exit_json(id=sshkey_id, changed=False)
