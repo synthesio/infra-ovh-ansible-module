@@ -66,9 +66,14 @@ def run_module():
     service_name = module.params['service_name']
     boot = module.params['boot']
     force_reboot = module.params['force_reboot']
+    endpoint = module.params['endpoint']
     changed = False
 
-    bootid = {'harddisk': 1, 'rescue-customer': 46371, 'ipxe-shell': 203323, 'poweroff': 95083}
+    if endpoint == 'ovh-us':
+        bootid = {'harddisk': 1, 'rescue-customer': 39720, 'ipxe-shell': 191853, 'poweroff': 86152}
+    else:
+        bootid = {'harddisk': 1, 'rescue-customer': 46371, 'ipxe-shell': 203323, 'poweroff': 95083}
+
     if module.check_mode:
         module.exit_json(
             msg="{} is now set to boot on {}. Reboot in progress... - (dry run mode)".format(service_name, boot),
