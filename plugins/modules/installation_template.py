@@ -102,7 +102,6 @@ def run_module():
             "customHostname": conf['customHostname'],
             "postInstallationScriptLink": conf['postInstallationScriptLink'],
             "postInstallationScriptReturn": conf['postInstallationScriptReturn'],
-            "sshKeyName": conf['sshKeyName'],
             "useDistributionKernel": conf['useDistributionKernel']
         },
         'templateName': conf['templateName']
