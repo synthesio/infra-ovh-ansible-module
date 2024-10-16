@@ -69,6 +69,24 @@ def build_boot_list(service_name: str, client: OVH) -> dict:
     return netboot
 
 
+def build_boot_list(service_name: str, client: OVH) -> dict:
+    """Build a list of available boot option available.
+    Get available netboots, for eatch one fetch its ID.
+    """
+    netboot = dict()
+    boot_ids = client.wrap_call("GET", f"/dedicated/server/{service_name}/boot")
+    for boot_id in boot_ids:
+        boot_infos = client.wrap_call("GET", f"/dedicated/server/{service_name}/boot/{boot_id}")
+        if boot_infos["kernel"] == "hd":
+            # The kernel parameter is "hd" in the API
+            # but we use "harddisk", which is the bootType parameter
+            netboot.update({"harddisk": boot_infos["bootId"]})
+        else:
+            netboot.update({boot_infos["kernel"]: boot_infos["bootId"]})
+
+    return netboot
+
+
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(
@@ -101,7 +119,8 @@ def run_module():
         message = f"{service_name} is now set to boot on {boot}."
         if force_reboot:
             message = message + " Reboot asked."
-        module.exit_json(msg=f"{message} (dry run mode)")
+        module.exit_json(
+            msg=f"{message} (dry run mode)")
 
     check = client.wrap_call("GET", f"/dedicated/server/{service_name}")
 
