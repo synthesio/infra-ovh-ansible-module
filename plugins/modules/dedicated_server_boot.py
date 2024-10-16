@@ -23,7 +23,7 @@ options:
     boot:
         required: true
         default: harddisk
-        choices: ['harddisk','rescue-customer','ipxe-shell','poweroff']
+        choices: ['hd','rescue-customer','ipxe-shell','poweroff']
         description:
             - Which way you want to boot your dedicated server
     force_reboot:
@@ -39,7 +39,7 @@ EXAMPLES = r'''
 - name: Change the bootid of a dedicated server to rescue
   synthesio.ovh.dedicated_server_boot:
     service_name: "{{ service_name }}"
-    boot: "rescue"
+    boot: "rescue-customer"
     force_reboot: "true"
   delegate_to: localhost
 '''
@@ -49,11 +49,26 @@ RETURN = ''' # '''
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
 
+def build_boot_list(service_name: str, client: OVH) -> dict:
+    """Build a list of available boot option.
+    Get available netboots, for each one fetch its ID.
+    """
+    netboot = dict()
+    boot_ids = client.wrap_call("GET", f"/dedicated/server/{service_name}/boot")
+    for boot_id in boot_ids:
+        boot_infos = client.wrap_call(
+            "GET", f"/dedicated/server/{service_name}/boot/{boot_id}"
+        )
+        netboot.update({boot_infos["kernel"]: boot_infos["bootId"]})
+
+    return netboot
+
+
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         service_name=dict(required=True),
-        boot=dict(required=True, choices=['harddisk', 'rescue-customer', 'ipxe-shell', 'poweroff']),
+        boot=dict(required=True, choices=['hd', 'rescue-customer', 'ipxe-shell', 'poweroff']),
         force_reboot=dict(required=False, default=False, type='bool')
     ))
 
@@ -68,11 +83,19 @@ def run_module():
     force_reboot = module.params['force_reboot']
     changed = False
 
-    bootid = {'harddisk': 1, 'rescue-customer': 46371, 'ipxe-shell': 203323, 'poweroff': 95083}
+    bootid = build_boot_list(service_name, client)
+
+    if boot not in list(bootid.keys()):
+        module.fail_json(
+            msg=f"Fail, {boot} is not in the available option: {list(bootid.keys())}"
+        )
+
     if module.check_mode:
+        message = f"{service_name} is now set to boot on {boot}."
+        if force_reboot:
+            message = message + " Reboot asked."
         module.exit_json(
-            msg="{} is now set to boot on {}. Reboot in progress... - (dry run mode)".format(service_name, boot),
-            changed=False)
+            msg=f"{message} (dry run mode)")
 
     check = client.wrap_call(
         "GET",
