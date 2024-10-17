@@ -1,12 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: dedicated_server_boot
 short_description: Change the bootid of a dedicated server.
@@ -23,7 +24,8 @@ options:
     boot:
         required: true
         default: harddisk
-        choices: ['hd','rescue-customer','ipxe-shell','poweroff']
+
+choices: ['hd','rescue-customer','ipxe-shell','poweroff']
         description:
             - Which way you want to boot your dedicated server
     force_reboot:
@@ -33,20 +35,23 @@ options:
         description:
             - When you want to force a dedicated server reboot
 
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Change the bootid of a dedicated server to rescue
   synthesio.ovh.dedicated_server_boot:
     service_name: "{{ service_name }}"
     boot: "rescue-customer"
     force_reboot: "true"
   delegate_to: localhost
-'''
+"""
 
-RETURN = ''' # '''
+RETURN = """ # """
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
+    OVH,
+    ovh_argument_spec,
+)
 
 
 def build_boot_list(service_name: str, client: OVH) -> dict:
@@ -66,21 +71,23 @@ def build_boot_list(service_name: str, client: OVH) -> dict:
 
 def run_module():
     module_args = ovh_argument_spec()
-    module_args.update(dict(
-        service_name=dict(required=True),
-        boot=dict(required=True, choices=['hd', 'rescue-customer', 'ipxe-shell', 'poweroff']),
-        force_reboot=dict(required=False, default=False, type='bool')
-    ))
-
-    module = AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True
+    module_args.update(
+        dict(
+            service_name=dict(required=True),
+            boot=dict(
+                required=True,
+                choices=["hd", "rescue-customer", "ipxe-shell", "poweroff"],
+            ),
+            force_reboot=dict(required=False, default=False, type="bool"),
+        )
     )
+
+    module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
     client = OVH(module)
 
-    service_name = module.params['service_name']
-    boot = module.params['boot']
-    force_reboot = module.params['force_reboot']
+    service_name = module.params["service_name"]
+    boot = module.params["boot"]
+    force_reboot = module.params["force_reboot"]
     changed = False
 
     bootid = build_boot_list(service_name, client)
@@ -94,36 +101,32 @@ def run_module():
         message = f"{service_name} is now set to boot on {boot}."
         if force_reboot:
             message = message + " Reboot asked."
-        module.exit_json(
-            msg=f"{message} (dry run mode)")
+        module.exit_json(msg=f"{message} (dry run mode)")
 
-    check = client.wrap_call(
-        "GET",
-        f"/dedicated/server/{service_name}"
-    )
+    check = client.wrap_call("GET", f"/dedicated/server/{service_name}")
 
-    if bootid[boot] != check['bootId']:
+    if bootid[boot] != check["bootId"]:
         client.wrap_call(
-            "PUT",
-            f"/dedicated/server/{service_name}",
-            bootId=bootid[boot]
+            "PUT", f"/dedicated/server/{service_name}", bootId=bootid[boot]
         )
         changed = True
 
     if force_reboot:
-        client.wrap_call(
-            "POST",
-            f"/dedicated/server/{service_name}/reboot"
+        client.wrap_call("POST", f"/dedicated/server/{service_name}/reboot")
+
+        module.exit_json(
+            msg="{} is now forced to reboot on {}".format(service_name, boot),
+            changed=True,
         )
 
-        module.exit_json(msg="{} is now forced to reboot on {}".format(service_name, boot), changed=True)
-
-    module.exit_json(msg="{} is now set to boot on {}".format(service_name, boot), changed=changed)
+    module.exit_json(
+        msg="{} is now set to boot on {}".format(service_name, boot), changed=changed
+    )
 
 
 def main():
     run_module()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
