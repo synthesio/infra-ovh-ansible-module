@@ -25,8 +25,7 @@ options:
         description: The instance uuid
     instance_action:
         required: true
-        description: start or stop
-
+        description: start, stop, shelve, unshelve
 '''
 
 EXAMPLES = r'''
@@ -47,7 +46,7 @@ def run_module():
     module_args.update(dict(
         service_name=dict(required=True),
         instance_id=dict(required=True),
-        instance_action=dict(required=True, choices=["start", "stop"])
+        instance_action=dict(required=True, choices=["start", "stop", "shelve", "unshelve"])
     ))
 
     module = AnsibleModule(
@@ -63,8 +62,12 @@ def run_module():
     # Set the route depending on the action
     if instance_action  == "start":
       route = f"/cloud/project/{service_name}/instance/{instance_id}/start"
-    elif shelve_state == "stop":
+    elif instance_state == "stop":
       route = f"/cloud/project/{service_name}/instance/{instance_id}/stop"
+    elif instance_state == "shelve":
+      route = f"/cloud/project/{service_name}/instance/{instance_id}/shelve"
+    elif instance_state == "unshelve":
+      route = f"/cloud/project/{service_name}/instance/{instance_id}/unshelve"
     else:
       module.fail_json(msg=f"Instance action {instance_action} is unknown", changed=False)
  
