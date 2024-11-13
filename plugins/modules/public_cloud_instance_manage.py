@@ -12,7 +12,7 @@ DOCUMENTATION = '''
 module: public_cloud_instance_manage
 short_description: Start or stop a OVH public cloud instance
 description:
-    - This module perform a Start/Stop from a OVH public cloud instance
+    - This module perform a Start/Stop/Shelve/Unshelve of an OVH public cloud instance
 author: Saul Bertuccio <sbertuccio@gmail.com>
 requirements:
     - ovh >= 0.5.0
