@@ -6,7 +6,7 @@ __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: dedicated_server_install
 short_description: Install a new dedicated server
@@ -25,6 +25,9 @@ options:
     template:
         required: true
         description: template to use to spawn the server
+    disk_group_id:
+        required: false
+        description: The disk group ID to use for OS installation
     soft_raid_devices:
         required: false
         description: number of devices in the raid software
@@ -35,7 +38,7 @@ options:
         required: false
         description: enable (md) or disable (jbod) software raid
 
-'''
+"""
 
 EXAMPLES = r'''
 - name: Install a new dedicated server
@@ -56,18 +59,22 @@ RETURN = ''' # '''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
-
 def run_module():
     module_args = ovh_argument_spec()
-    module_args.update(dict(
-        service_name=dict(required=True),
-        hostname=dict(required=True),
-        template=dict(required=True),
-        soft_raid_devices=dict(required=False, default=None),
-        partition_scheme_name=dict(required=False, default="default"),
-        raid=dict(choices=['enabled', 'disabled'], default='enabled', required=False),
-        user_metadata=dict(type="list", requirements=False, default=None)
-    ))
+    module_args.update(
+        dict(
+            service_name=dict(required=True),
+            hostname=dict(required=True),
+            template=dict(required=True),
+            disk_group_id=dict(required=False, default=1),
+            soft_raid_devices=dict(required=False, default=None),
+            partition_scheme_name=dict(required=False, default="default"),
+            raid=dict(
+                choices=["enabled", "disabled"], default="enabled", required=False
+            ),
+            user_metadata=dict(type="list", requirements=False, default=None),
+        )
+    )
 
     module = AnsibleModule(
         argument_spec=module_args,
@@ -82,6 +89,7 @@ def run_module():
     raid = module.params['raid']
     partition_scheme_name = module.params['partition_scheme_name']
     user_metadata = module.params['user_metadata']
+    disk_group_id = module.params["disk_group_id"]
 
     if module.check_mode:
         module.exit_json(msg=f"Installation in progress on {service_name} as {hostname} with template {template} - (dry run mode)",
@@ -99,12 +107,15 @@ def run_module():
     elif raid == 'disabled':
         no_raid = True
 
-    details = {"details":
-               {"language": "en",
-                "customHostname": hostname,
-                "softRaidDevices": soft_raid_devices,
-                "noRaid": no_raid}
-               }
+    details = {
+        "details": {
+            "language": "en",
+            "customHostname": hostname,
+            "softRaidDevices": soft_raid_devices,
+            "noRaid": no_raid,
+            "diskGroupId": disk_group_id,
+        }
+    }
 
     client.wrap_call(
         "POST",
