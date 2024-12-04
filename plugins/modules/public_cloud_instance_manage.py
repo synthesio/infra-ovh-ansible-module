@@ -70,7 +70,8 @@ def run_module():
       route = f"/cloud/project/{service_name}/instance/{instance_id}/unshelve"
     else:
       module.fail_json(msg=f"Instance action {instance_action} is unknown", changed=False)
- 
+     if module.check_mode:
+        module.exit_json(msg=f"Action {instance_action} performed on {instance_id}. - (dry run mode)", changed=True)
     # Do the call
     client.wrap_call("POST", route)
  
