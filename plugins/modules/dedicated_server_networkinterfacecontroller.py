@@ -18,11 +18,14 @@ requirements:
 options:
     service_name:
         required: true
-        description: The service_name
+        description: The service name
     link_type:
         required: true
-        description: The link type, public or private (vrack)
-
+        description: The link type
+            - public or public_lag
+            - private or private_lag (vrack)
+            - provisioning or provisioning_lag
+            - isolated (OVHcloud special mode)
 '''
 
 EXAMPLES = r'''
@@ -43,7 +46,7 @@ def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
         service_name=dict(required=True),
-        link_type=dict(required=True)
+        link_type=dict(required=False)
     ))
 
     module = AnsibleModule(
@@ -52,15 +55,23 @@ def run_module():
     )
     client = OVH(module)
 
-    link_type = module.params['link_type']
+    link_type = None
+    if module.params['link_type']:
+        link_type = module.params['link_type']
     service_name = module.params['service_name']
 
-    result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController?linkType={link_type}")
-    # XXX: This is a hack, would be better to detect what kind of server you are using:
-    # If there is no result, maybe you have a server with multiples network interfaces on the same link (2x public + 2x vrack), like HGR
-    # In this case, retry with public_lag/private_lag linkType
-    if not result:
-        result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController?linkType={link_type}_lag")
+    # Return all mac addresses
+    if not link_type:
+        result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController")
+
+    # Return only specific type mac addresses
+    elif link_type:
+        result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController?linkType={link_type}")
+        # XXX: This is a hack, would be better to detect what kind of server you are using:
+        # If there is no result, maybe you have a server with multiples network interfaces on the same link (2x public + 2x vrack), like HGR
+        # In this case, retry with public_lag/private_lag linkType
+        if not result:
+            result = client.wrap_call("GET", f"/dedicated/server/{service_name}/networkInterfaceController?linkType={link_type}_lag")
 
     module.exit_json(changed=False, msg=result)
 
