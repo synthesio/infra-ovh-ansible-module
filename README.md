@@ -27,6 +27,7 @@ dedicated_server_display_name
 dedicated_server_info
 dedicated_server_install
 dedicated_server_install_wait
+dedicated_server_intervention
 dedicated_server_monitoring
 dedicated_server_networkinterfacecontroller
 dedicated_server_rescuesshkey
