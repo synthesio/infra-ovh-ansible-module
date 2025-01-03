@@ -12,7 +12,7 @@ module: dedicated_server_intervention
 short_description: Enable or disable ovh intervention on a dedicated server
 description:
     - Enable or disable ovh intervention on a dedicated server
-author: Synthesio SRE Team
+author: tnosaj
 requirements:
     - ovh >= 0.5.0
 options:
