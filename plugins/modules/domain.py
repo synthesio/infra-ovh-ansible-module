@@ -64,19 +64,18 @@ from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
 )
 
 
-def validate_record(existing_records, client,
-                    record_type, name, domain, value):
-    '''
+def validate_record(existing_records, client, record_type, name, domain, value):
+    """
     Verify if an existing record match the desired record.
     Returning the exit message used for the module exit.
-    '''
+    """
     changed = False
     # We can have multiple records with different values for the same domain name.
     # Build a list of those values to compare with the one we want.
     existing_values = list()
     for record_id in existing_records:
         record = client.wrap_call("GET", f"/domain/zone/{domain}/record/{record_id}")
-        existing_values.append(record['target'].replace('"', ''))
+        existing_values.append(record["target"].replace('"', ""))
 
     # Compare lists of values
     to_delete = [x for x in existing_values + value if x not in value]
@@ -85,10 +84,15 @@ def validate_record(existing_records, client,
     pre_message = f"{record_type} record {name}.{domain}"
     message = " "
     if to_delete:
-        message = message + f"value {', '.join(to_delete)} should be removed. Changes needed."
+        message = (
+            message + f"value {', '.join(to_delete)} should be removed. Changes needed."
+        )
         changed = True
     if to_add:
-        message = message + f"{record_type} record {name}.{domain} should be {', '.join(to_add)}. Changes needed."
+        message = (
+            message
+            + f"{record_type} record {name}.{domain} should be {', '.join(to_add)}. Changes needed."
+        )
         changed = True
     if not to_delete and not to_add:
         message = f" already set to  {', '.join(value)}. No changes."
@@ -150,20 +154,21 @@ def run_module():
     if module.check_mode:
         # Check for existing records
         if existing_records:
-            exit_message, changed = validate_record(existing_records, client,
-                                                    record_type, name, domain, value)
+            exit_message, changed = validate_record(
+                existing_records, client, record_type, name, domain, value
+            )
 
         else:
-            exit_message = f"{record_type} record {', '.join(value)} absent from {name}.{domain}."
+            exit_message = (
+                f"{record_type} record {', '.join(value)} absent from {name}.{domain}."
+            )
             if state == "present":
                 exit_message = exit_message + " Changes needed."
                 changed = True
             else:
                 exit_message = exit_message + " No changes."
 
-        module.exit_json(
-            msg=f"(dry run mode) {exit_message}", changed=changed
-        )
+        module.exit_json(msg=f"(dry run mode) {exit_message}", changed=changed)
 
     record_created = []
     record_deleted = []
@@ -181,7 +186,9 @@ def run_module():
     if state == "present":
         if existing_records:
             for record_id in existing_records:
-                record = client.wrap_call("GET", f"/domain/zone/{domain}/record/{record_id}")
+                record = client.wrap_call(
+                    "GET", f"/domain/zone/{domain}/record/{record_id}"
+                )
                 # If the record exist with the desired value
                 # we can remove the value from the list to be created later
                 if record["target"] in value:
@@ -190,7 +197,9 @@ def run_module():
                 # If the record exist with an unwanted value, and we must not append it,
                 # we will removed it from the zone.
                 elif record["target"] not in value and not append:
-                    client.wrap_call("DELETE", f"/domain/zone/{domain}/record/{record_id}")
+                    client.wrap_call(
+                        "DELETE", f"/domain/zone/{domain}/record/{record_id}"
+                    )
                     record_deleted.append(record["target"])
 
         for v in value:
@@ -232,7 +241,9 @@ def run_module():
             )
 
         for record_id in existing_records:
-            record = client.wrap_call("GET", f"/domain/zone/{domain}/record/{record_id}")
+            record = client.wrap_call(
+                "GET", f"/domain/zone/{domain}/record/{record_id}"
+            )
 
             if record["target"] in value:
                 client.wrap_call("DELETE", f"/domain/zone/{domain}/record/{record_id}")
