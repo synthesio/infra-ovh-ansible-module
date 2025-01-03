@@ -70,6 +70,7 @@ def validate_record(existing_records, client,
     Verify if an existing record match the desired record.
     Returning the exit message used for the module exit.
     '''
+    changed = False
     # We can have multiple records with different values for the same domain name.
     # Build a list of those values to compare with the one we want.
     existing_values = list()
@@ -85,13 +86,14 @@ def validate_record(existing_records, client,
     message = " "
     if to_delete:
         message = message + f"value {', '.join(to_delete)} should be removed. Changes needed."
+        changed = True
     if to_add:
         message = message + f"{record_type} record {name}.{domain} should be {', '.join(to_add)}. Changes needed."
-
+        changed = True
     if not to_delete and not to_add:
         message = f" already set to  {', '.join(value)}. No changes."
 
-    return pre_message + message
+    return pre_message + message, changed
 
 
 def run_module():
@@ -139,6 +141,7 @@ def run_module():
     state = module.params["state"]
     append = module.params["append"]
     record_ttl = module.params["record_ttl"]
+    changed = False
 
     existing_records = client.wrap_call(
         "GET", f"/domain/zone/{domain}/record", fieldType=record_type, subDomain=name
@@ -147,18 +150,19 @@ def run_module():
     if module.check_mode:
         # Check for existing records
         if existing_records:
-            exit_message = validate_record(existing_records, client,
-                                           record_type, name, domain, value)
+            exit_message, changed = validate_record(existing_records, client,
+                                                    record_type, name, domain, value)
 
         else:
             exit_message = f"{record_type} record {', '.join(value)} absent from {name}.{domain}."
             if state == "present":
                 exit_message = exit_message + " Changes needed."
+                changed = True
             else:
                 exit_message = exit_message + " No changes."
 
         module.exit_json(
-            msg=f"(dry run mode) {exit_message}"
+            msg=f"(dry run mode) {exit_message}", changed=changed
         )
 
     record_created = []
