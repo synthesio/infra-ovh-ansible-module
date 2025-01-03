@@ -58,19 +58,19 @@ def run_module():
     state = module.params['state']
 
     if state == 'enabled':
-        noIntervention_bool = False
+        no_intervention_bool = False
     elif state == 'disabled':
-        noIntervention_bool = True
+        no_intervention_bool = True
 
     if module.check_mode:
         module.exit_json(msg="NoIntervention is now {} for {} - (dry run mode)".format(state, service_name), changed=True)
 
     server_state = client.wrap_call("GET", f"/dedicated/server/{service_name}")
 
-    if server_state['noIntervention'] == noIntervention_bool:
+    if server_state['noIntervention'] == no_intervention_bool:
         module.exit_json(msg="noIntervention is already {} on {}".format(state, service_name), changed=False)
 
-    client.wrap_call("PUT", f"/dedicated/server/{service_name}", noIntervention=noIntervention_bool)
+    client.wrap_call("PUT", f"/dedicated/server/{service_name}", noIntervention=no_intervention_bool)
 
     module.exit_json(msg="noIntervention is now {} on {}".format(state, service_name), changed=True)
 
