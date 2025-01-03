@@ -18,7 +18,7 @@ requirements:
 options:
     service_name:
         required: true
-        description: The service_name
+        description: The service name
     state:
         required: true
         description: Indicate the desired state of intervention
