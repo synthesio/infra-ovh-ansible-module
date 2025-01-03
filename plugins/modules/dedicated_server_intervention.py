@@ -20,7 +20,7 @@ options:
         required: true
         description: The service name
     state:
-        required: true
+        required: false
         description: Indicate the desired state of intervention
         choices:
           - enabled
