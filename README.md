@@ -23,6 +23,7 @@ This collection provides the following modules:
 dedicated_nasha_manage_partition
 dedicated_server_boot
 dedicated_server_boot_wait
+dedicated_server_compatible_templates
 dedicated_server_display_name
 dedicated_server_info
 dedicated_server_install
