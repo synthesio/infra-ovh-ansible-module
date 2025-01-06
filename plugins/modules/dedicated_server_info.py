@@ -10,9 +10,9 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: dedicated_server_info
-short_description: Retrieve all info for a OVH dedicated server
+short_description: Retrieve basic info for an OVH dedicated server
 description:
-    - This module retrieves all info for a OVH dedicated server
+    - This module retrieves basic info for an OVH dedicated server
 author: Maxime Dupré
 requirements:
     - ovh >= 0.5.0
@@ -23,7 +23,7 @@ options:
 '''
 
 EXAMPLES = r'''
-- name: Retrieve all info for an OVH dedicated server
+- name: Retrieve basic info for an OVH dedicated server
   synthesio.ovh.dedicated_server_info:
     service_name: "{{ service_name }}"
   delegate_to: localhost
