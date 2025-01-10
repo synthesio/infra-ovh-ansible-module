@@ -54,6 +54,11 @@ public_cloud_monthly_billing
 public_cloud_object_storage
 public_cloud_object_storage_policy
 public_cloud_private_network_info
+public_cloud_user_info
+public_cloud_user_s3credentials_info
+public_cloud_user_s3credentials
+public_cloud_user
+public_cloud_users_info
 vps_display_name
 vps_info
 ```
