@@ -25,7 +25,7 @@ options:
         required: true
         default: harddisk
 
-choices: ['hd','rescue-customer','ipxe-shell','poweroff']
+choices: ['harddisk','rescue-customer','ipxe-shell','poweroff']
         description:
             - Which way you want to boot your dedicated server
     force_reboot:
@@ -64,7 +64,12 @@ def build_boot_list(service_name: str, client: OVH) -> dict:
         boot_infos = client.wrap_call(
             "GET", f"/dedicated/server/{service_name}/boot/{boot_id}"
         )
-        netboot.update({boot_infos["kernel"]: boot_infos["bootId"]})
+        if boot_infos["kernel"] == "hd":
+            # The kernel parameter is "hd" in the API
+            # but we use "harddisk", which is the bootType parameter
+            netboot.update({"harddisk": boot_infos["bootId"]})
+        else:
+            netboot.update({boot_infos["kernel"]: boot_infos["bootId"]})
 
     return netboot
 
@@ -76,7 +81,7 @@ def run_module():
             service_name=dict(required=True),
             boot=dict(
                 required=True,
-                choices=["hd", "rescue-customer", "ipxe-shell", "poweroff"],
+                choices=["harddisk", "rescue-customer", "ipxe-shell", "poweroff"],
             ),
             force_reboot=dict(required=False, default=False, type="bool"),
         )
