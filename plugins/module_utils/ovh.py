@@ -2,6 +2,10 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+from functools import wraps
+
+from ansible.module_utils.basic import AnsibleModule
+
 try:
     import ovh
     from ovh.exceptions import (
@@ -10,29 +14,15 @@ try:
         NotGrantedCall,
         BadParametersError,
         HTTPError,
-        ResourceNotFoundError
+        ResourceNotFoundError,
     )
 
     HAS_OVH = True
 except ImportError:
     HAS_OVH = False
 
-
-def ovh_argument_spec():
-    return dict(
-        endpoint=dict(type="str", required=False, default=None),
-        application_key=dict(type="str", required=False, default=None),
-        application_secret=dict(type="str", required=False, default=None),
-        consumer_key=dict(type="str", required=False, default=None),
-    )
-
-
-class OVHError(Exception):
-    pass
-
-
-class OVHResourceNotFound(Exception):
-    pass
+    class ResourceNotFoundError(Exception):
+        pass
 
 
 class OVH:
@@ -93,17 +83,50 @@ class OVH:
         try:
             return self.client.call(verb, path, kwargs, _need_auth)
 
-        except ResourceNotFoundError:
-            raise OVHResourceNotFound
         except InvalidKey as e:
-            self.module.fail_json(
-                msg=f"Key {self.client._application_key}: {e}"
-            )
+            self.module.fail_json(msg=f"Key {self.client._application_key}: {e}")
         except BadParametersError as e:
-            self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
+            self.module.fail_json(
+                msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}"
+            )
         except NotGrantedCall as e:
-            self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
+            self.module.fail_json(
+                msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}"
+            )
         except HTTPError as e:
-            self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
+            self.module.fail_json(
+                msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}"
+            )
         except APIError as e:
-            self.module.fail_json(msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}")
+            self.module.fail_json(
+                msg=f"Fails calling API ({verb} {self.client._endpoint}{path}): {e}"
+            )
+
+
+def ovh_argument_spec():
+    return dict(
+        endpoint=dict(type="str", required=False, default=None),
+        application_key=dict(type="str", required=False, default=None),
+        application_secret=dict(type="str", required=False, default=None),
+        consumer_key=dict(type="str", required=False, default=None),
+    )
+
+
+def collection_module(parameters):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Initialize module and client
+            module_args = ovh_argument_spec()
+            module_args.update(parameters)
+
+            module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
+            client = OVH(module)
+
+            # Extract parameters and pass as arguments
+            params = {key: module.params[key] for key in parameters}
+            return func(module, client, **params)
+
+        return wrapper
+
+    return decorator
