@@ -40,7 +40,6 @@ from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_
 def run_module():
     module_args = ovh_argument_spec()
     module_args.update(dict(
-        name=dict(required=True),
         engagement_strategy=dict(required=True),
         service_name=dict(required=True)
     ))
