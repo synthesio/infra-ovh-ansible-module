@@ -68,9 +68,7 @@ def run_module():
     if engagement_strategy not in server_engagement['endRule']['possibleStrategies']:
         module.fail_json(msg="Strategy {} not available for service".format(engagement_strategy))
 
-    resource = {
-        "resource": {
-            'strategy': engagement_strategy}}
+    resource = {'strategy': engagement_strategy}
 
     client.wrap_call(
         "PUT",
