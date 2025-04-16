@@ -7,9 +7,14 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: dedicated_server_engagement_strategy
-short_description: Sets the engagement strategy for a service
+short_description: Sets the engagement strategy for a dedicated server
 description:
-    - This module sets the engagement strategy for a service
+    - This module sets the engagement strategy for a dedicated server. 
+      the engagement strategy is the rule that will be applied at the end of the current engagement period, if any.
+      Possible values are:
+      REACTIVATE_ENGAGEMENT
+      STOP_ENGAGEMENT_FALLBACK_DEFAULT_PRICE
+      CANCEL_SERVICE
 author: Marco Sarti <m.sarti@onetag.com>
 requirements:
     - ovh >= 0.5.0
@@ -26,7 +31,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Changes the engagement strategy for the service"
-  synthesio.ovh.services_engagement_strategy:
+  synthesio.ovh.dedicated_server_engagement_strategy:
     engagement_strategy: "{{ engagement_strategy }}"
     service_name: "{{ service_name }}"
   delegate_to: localhost
@@ -60,12 +65,16 @@ def run_module():
 
     service_id = result["serviceId"]
 
-    server_engagement = client.wrap_call("GET", f"/services/{service_id}/billing/engagement")
+    service = client.wrap_call("GET", f"/services/{service_id}")
 
-    if server_engagement['endRule']['strategy'] == engagement_strategy:
-        module.exit_json(msg="Engagement strategy is already {} on {}".format(engagement_strategy, service_name), changed=False)
+    if service['billing']['engagement'] is None:
+        module.exit_json(msg="No engagement for server {}".format(service_name), changed=False)
 
-    if engagement_strategy not in server_engagement['endRule']['possibleStrategies']:
+    if service['billing']['engagement']['strategy'] == engagement_strategy:
+        module.exit_json(msg="Engagement strategy is already {} on {}"
+                         .format(engagement_strategy, service_name), changed=False)
+
+    if engagement_strategy not in service['billing']['engagement']['possibleStrategies']:
         module.fail_json(msg="Strategy {} not available for service".format(engagement_strategy))
 
     resource = {'strategy': engagement_strategy}
