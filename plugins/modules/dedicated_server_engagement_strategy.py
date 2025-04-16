@@ -70,11 +70,11 @@ def run_module():
     if service['billing']['engagement'] is None:
         module.exit_json(msg="No engagement for server {}".format(service_name), changed=False)
 
-    if service['billing']['engagement']['strategy'] == engagement_strategy:
+    if service['billing']['engagement']['endRule']['strategy'] == engagement_strategy:
         module.exit_json(msg="Engagement strategy is already {} on {}"
                          .format(engagement_strategy, service_name), changed=False)
 
-    if engagement_strategy not in service['billing']['engagement']['possibleStrategies']:
+    if engagement_strategy not in service['billing']['engagement']['endRule']['possibleStrategies']:
         module.fail_json(msg="Strategy {} not available for service".format(engagement_strategy))
 
     resource = {'strategy': engagement_strategy}
