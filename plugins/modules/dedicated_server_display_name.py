@@ -55,6 +55,11 @@ def run_module():
     display_name = module.params['display_name']
     service_name = module.params['service_name']
 
+    current_display_name = client.wrap_call("GET", f"/dedicated/server/{service_name}")["iam"]["displayName"]
+
+    if current_display_name == display_name:
+        module.exit_json(msg="display_name already set to {} !".format(display_name), changed=False)
+
     if module.check_mode:
         module.exit_json(msg="display_name has been set to {} ! - (dry run mode)".format(display_name), changed=True)
 
