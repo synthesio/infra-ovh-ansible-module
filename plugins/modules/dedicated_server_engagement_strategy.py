@@ -9,7 +9,7 @@ DOCUMENTATION = '''
 module: dedicated_server_engagement_strategy
 short_description: Sets the engagement strategy for a dedicated server
 description:
-    - This module sets the engagement strategy for a dedicated server. 
+    - This module sets the engagement strategy for a dedicated server.
       the engagement strategy is the rule that will be applied at the end of the current engagement period, if any.
       Possible values are:
       REACTIVATE_ENGAGEMENT
