@@ -10,11 +10,11 @@ module: dedicated_server_engagement_strategy
 short_description: Sets the engagement strategy for a dedicated server
 description:
     - This module sets the engagement strategy for a dedicated server.
-      the engagement strategy is the rule that will be applied at the end of the current engagement period, if any.
-      Possible values are:
-      REACTIVATE_ENGAGEMENT
-      STOP_ENGAGEMENT_FALLBACK_DEFAULT_PRICE
-      CANCEL_SERVICE
+    - the engagement strategy is the rule that will be applied at the end of the current engagement period, if any.
+    - Possible values are:
+    - REACTIVATE_ENGAGEMENT
+    - STOP_ENGAGEMENT_FALLBACK_DEFAULT_PRICE
+    - CANCEL_SERVICE
 author: Marco Sarti <m.sarti@onetag.com>
 requirements:
     - ovh >= 0.5.0
@@ -22,11 +22,11 @@ options:
     engagement_strategy:
         required: true
         description:
-            - The engagement strategy
+            - The engagement strategy rule to apply
     service_name:
         required: true
         description:
-            - The service_name
+            - The service name
 '''
 
 EXAMPLES = r'''
@@ -59,7 +59,7 @@ def run_module():
     service_name = module.params['service_name']
 
     if module.check_mode:
-        module.exit_json(msg="engagement_strategy has been set to {} ! - (dry run mode)".format(engagement_strategy), changed=True)
+        module.exit_json(msg=f"engagement_strategy has been set to {engagement_strategy} ! - (dry run mode)", changed=True)
 
     result = client.wrap_call("GET", f"/dedicated/server/{service_name}/serviceInfos")
 
@@ -68,14 +68,13 @@ def run_module():
     service = client.wrap_call("GET", f"/services/{service_id}")
 
     if service['billing']['engagement'] is None:
-        module.exit_json(msg="No engagement for server {}".format(service_name), changed=False)
+        module.exit_json(msg=f"No engagement for server {service_name}", changed=False)
 
     if service['billing']['engagement']['endRule']['strategy'] == engagement_strategy:
-        module.exit_json(msg="Engagement strategy is already {} on {}"
-                         .format(engagement_strategy, service_name), changed=False)
+        module.exit_json(msg=f"Engagement strategy is already {engagement_strategy} on {service_name}", changed=False)
 
     if engagement_strategy not in service['billing']['engagement']['endRule']['possibleStrategies']:
-        module.fail_json(msg="Strategy {} not available for service".format(engagement_strategy))
+        module.fail_json(msg=f"Strategy {engagement_strategy} not available for service")
 
     resource = {'strategy': engagement_strategy}
 
@@ -85,8 +84,7 @@ def run_module():
         **resource
     )
     module.exit_json(
-        msg="engagement_strategy succesfully set to {} for {} !".format(engagement_strategy, service_name),
-        changed=True)
+        msg=f"engagement_strategy succesfully set to {engagement_strategy} for {service_name} !", changed=True)
 
 
 def main():
