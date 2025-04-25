@@ -37,6 +37,8 @@ installation_template
 ip_info
 ip_move
 ip_reverse
+mailbox
+mailpro
 me_sshkey
 public_cloud_block_storage
 public_cloud_block_storage_instance
