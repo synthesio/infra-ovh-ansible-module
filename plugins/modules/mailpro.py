@@ -129,7 +129,7 @@ def run_module():
                 # Order a new email pro
                 client.wrap_call(
                     "POST",
-                    '/order/emailpro/%s/account/%s' % (service, duration),
+                    '/order/email/pro/%s/account/%s' % (service, duration),
                     number=1
                 )
                 # Get the name of the ordered email pro
