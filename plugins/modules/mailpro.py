@@ -129,14 +129,15 @@ def run_module():
                 # Order a new email pro
                 client.wrap_call(
                     "POST",
-                    '/order/email/pro/%s/account/%s' % (service, duration),
-                    number=1
+                    '/order/email/pro/%s/account/%s?number=1' % (service, duration)
                 )
                 # Get the name of the ordered email pro
                 destination = client.wrap_call(
                     "GET",
                     '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
                 )[0]
+                if not destination:
+                    module.exit_json(msg="No available email pro account found", changed=False)
                 # Get the list of existing domain mailboxes (!=pro)
                 mailbox_accounts = client.wrap_call(
                     "GET",
