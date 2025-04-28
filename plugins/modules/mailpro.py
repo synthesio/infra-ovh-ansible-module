@@ -53,6 +53,7 @@ synthesio.ovh.mailpro
   account: john.doe
   password: changeme
   duration: 1
+  payment_method_id: 123456
 delegate_to: localhost
 '''
 
@@ -75,7 +76,8 @@ def run_module():
         account=dict(required=True),
         state=dict(choices=['present', 'absent'], default='present'),
         password=dict(required=False),
-        duration=dict(choices=['1', '12'], default='12') # 1 month or 12 months
+        duration=dict(choices=['1', '12'], default='12'), # 1 month or 12 months
+        payment_method_id=dict(required=False, type='int')
     ))
 
     module = AnsibleModule(
@@ -89,6 +91,7 @@ def run_module():
     account = module.params['account']
     password = module.params['password']
     duration = module.params['duration']
+    payment_method_id = module.params['payment_method_id']
     if duration == '12':
         renewperiod = 'yearly'
     else:
@@ -126,54 +129,64 @@ def run_module():
             if module.params['state'] == 'absent':
                 module.exit_json(msg="{}@{} does not exist".format(account, domain), changed=False)
             else:
-                # Order a new email pro
-                client.wrap_call(
-                    "POST",
-                    '/order/email/pro/%s/account/%s?number=1' % (service, duration),
-                    number=1
-                )
-                # Get the name of the ordered email pro
-                destination = client.wrap_call(
-                    "GET",
-                    '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
-                )[0]
-                if not destination:
-                    module.exit_json(msg="No available email pro account found", changed=False)
-                # Get the list of existing domain mailboxes (!=pro)
-                mailbox_accounts = client.wrap_call(
-                    "GET",
-                    '/email/domain/%s/account' % domain,
-                )
-                if account in mailbox_accounts:
-                    if password:
-                        # Migrate existing mailbox to email pro
-                        result = client.wrap_call(
-                            "POST",
-                            '/email/domain/%s/account/%s/migrate/emailpro/%s/destinationEmailAddress/%s/migrate' % (domain, account, service, destination),
-                            password=password
-                        )
-                        module.exit_json(msg="{}@{} successfully migrated to email pro".format(account, domain), result=result, changed=True)
-                    else:
-                        module.exit_json(msg="{}@{} already exists as domain mailbox, please provide the password to migrate".format(account, domain))
-                else:
-                    # Configure the email pro account
-                    result = client.wrap_call(
-                        "PUT",
-                        '/email/pro/%s/account/%s' % (service, destination),
-                        domain=domain,
-                        login=account,
-                        renewPeriod=renewperiod,
-                        quota=10,
-                        mailingfilter=['vaderetro']
+                if payment_method_id:
+                    # Order a new email pro
+                    orderid = client.wrap_call(
+                        "POST",
+                        '/order/email/pro/%s/account/%s?number=1' % (service, duration),
+                        number=1
+                    )['data']['orderId']
+                    # Pay the order
+                    client.wrap_call(
+                        "POST",
+                        '/me/order/%s/pay' % (orderid),
+                        paymentMethodId=payment_method_id
                     )
-                    if password:
-                        # Change the password of the email pro account
-                        client.wrap_call(
-                            "POST",
-                            '/email/pro/%s/account/%s/changePassword' % (service, destination),
-                            password=password
+                    # Get the name of the ordered email pro
+                    available_accounts = client.wrap_call(
+                        "GET",
+                        '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
+                    )
+                    if not available_accounts:
+                        module.exit_json(msg="No available email pro account found", changed=False)
+                    destination = available_accounts[0]
+                    # Get the list of existing domain mailboxes (!=pro)
+                    mailbox_accounts = client.wrap_call(
+                        "GET",
+                        '/email/domain/%s/account' % domain,
+                    )
+                    if account in mailbox_accounts:
+                        if password:
+                            # Migrate existing mailbox to email pro
+                            result = client.wrap_call(
+                                "POST",
+                                '/email/domain/%s/account/%s/migrate/emailpro/%s/destinationEmailAddress/%s/migrate' % (domain, account, service, destination),
+                                password=password
+                            )
+                            module.exit_json(msg="{}@{} successfully migrated to email pro".format(account, domain), result=result, changed=True)
+                        else:
+                            module.exit_json(msg="{}@{} already exists as domain mailbox, please provide the password to migrate".format(account, domain))
+                    else:
+                        # Configure the email pro account
+                        result = client.wrap_call(
+                            "PUT",
+                            '/email/pro/%s/account/%s' % (service, destination),
+                            domain=domain,
+                            login=account,
+                            renewPeriod=renewperiod,
+                            quota=10,
+                            mailingfilter=['vaderetro']
                         )
-                    module.exit_json(msg="{}@{} successfully created as email pro".format(account, domain), result=result, changed=True)
+                        if password:
+                            # Change the password of the email pro account
+                            client.wrap_call(
+                                "POST",
+                                '/email/pro/%s/account/%s/changePassword' % (service, destination),
+                                password=password
+                            )
+                        module.exit_json(msg="{}@{} successfully created as email pro".format(account, domain), result=result, changed=True)
+                else:
+                    module.exit_json(msg="Please provide a payment method id to create the email pro account", changed=False)
     except APIError as api_error:
         module.fail_json(
             msg="Failed to call OVH API: {0}".format(api_error))
