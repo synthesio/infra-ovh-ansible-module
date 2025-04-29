@@ -5,7 +5,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.common.datetime import datetime, timedelta
+from datetime import datetime, timedelta
 
 DOCUMENTATION = '''
 ---
@@ -160,7 +160,7 @@ def run_module():
                                     '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
                                 )
                                 if not available_accounts:
-                                    module.run_command_environ_update(['sleep', '60'])
+                                    module.run_command(['sleep', '60'])
                             except APIError as e:
                                 module.exit_json(msg="Error while waiting for email pro account: %s" % str(e))
                     destination = available_accounts[0]
