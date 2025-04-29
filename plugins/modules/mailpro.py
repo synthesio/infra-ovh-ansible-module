@@ -6,6 +6,7 @@ __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule
 import time
+from datetime import datetime, timedelta
 
 DOCUMENTATION = '''
 ---
@@ -150,12 +151,19 @@ def run_module():
                             paymentMethod={"id": payment_method_id}
                         )
                         # Get the ordered email pro
+                        timeout = datetime.now() + timedelta(minutes=20)
                         while available_accounts == []:
-                            available_accounts = client.wrap_call(
-                                "GET",
-                                '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
-                            )
-                            time.sleep (60)
+                            if datetime.now() > timeout:
+                                module.exit_json(msg="Timeout waiting for an email pro account to become available")
+                            try:
+                                available_accounts = client.wrap_call(
+                                    "GET",
+                                    '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
+                                )
+                                if not available_accounts:
+                                    time.sleep(60)
+                            except APIError as e:
+                                module.exit_json(msg="Error while waiting for email pro account: %s" % str(e))
                     destination = available_accounts[0]
 
                     # Get the list of existing domain mailboxes (!=pro)
