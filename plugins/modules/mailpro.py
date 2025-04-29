@@ -135,7 +135,7 @@ def run_module():
                         "POST",
                         '/order/email/pro/%s/account/%s?number=1' % (service, duration),
                         number=1
-                    )['data']['orderId']
+                    )['orderId']
                     # Pay the order
                     client.wrap_call(
                         "POST",
