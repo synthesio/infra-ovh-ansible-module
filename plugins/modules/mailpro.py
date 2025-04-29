@@ -5,6 +5,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule
+import time
 
 DOCUMENTATION = '''
 ---
@@ -130,26 +131,33 @@ def run_module():
                 module.exit_json(msg="{}@{} does not exist".format(account, domain), changed=False)
             else:
                 if payment_method_id:
-                    # Order a new email pro
-                    orderid = client.wrap_call(
-                        "POST",
-                        '/order/email/pro/%s/account/%s?number=1' % (service, duration),
-                        number=1
-                    )['orderId']
-                    # Pay the order
-                    client.wrap_call(
-                        "POST",
-                        '/me/order/%s/pay' % (orderid),
-                        paymentMethod={"id": payment_method_id}
-                    )
-                    # Get the name of the ordered email pro
+                    # Is there an email pro available
                     available_accounts = client.wrap_call(
                         "GET",
                         '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
                     )
-                    if not available_accounts:
-                        module.exit_json(msg="No available email pro account found", changed=False)
+                    if available_accounts == []:
+                        # Order a new email pro
+                        orderid = client.wrap_call(
+                            "POST",
+                            '/order/email/pro/%s/account/%s?number=1' % (service, duration),
+                            number=1
+                        )['orderId']
+                        # Pay the order
+                        client.wrap_call(
+                            "POST",
+                            '/me/order/%s/pay' % (orderid),
+                            paymentMethod={"id": payment_method_id}
+                        )
+                        # Get the ordered email pro
+                        while available_accounts == []:
+                            available_accounts = client.wrap_call(
+                                "GET",
+                                '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
+                            )
+                            time.sleep (60)
                     destination = available_accounts[0]
+
                     # Get the list of existing domain mailboxes (!=pro)
                     mailbox_accounts = client.wrap_call(
                         "GET",
