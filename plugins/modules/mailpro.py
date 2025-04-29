@@ -117,7 +117,7 @@ def run_module():
                     # Update the password
                     client.wrap_call(
                         "POST",
-                        '/email/pro/%s/account/%s/changePassword' % (service, destination),
+                        '/email/pro/%s/account/%s@%s/changePassword' % (service, account, domain),
                         password=password
                     )
                     module.exit_json(msg="{}@{} already exists, password updated".format(account, domain), changed=False)
@@ -189,7 +189,7 @@ def run_module():
                             # Change the password of the email pro account
                             client.wrap_call(
                                 "POST",
-                                '/email/pro/%s/account/%s/changePassword' % (service, destination),
+                                '/email/pro/%s/account/%s@%s/changePassword' % (service, account, domain),
                                 password=password
                             )
                         module.exit_json(msg="{}@{} successfully created as email pro".format(account, domain), result=result, changed=True)
