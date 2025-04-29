@@ -140,7 +140,7 @@ def run_module():
                     client.wrap_call(
                         "POST",
                         '/me/order/%s/pay' % (orderid),
-                        paymentMethodId=payment_method_id
+                        paymentMethod={"id": payment_method_id}
                     )
                     # Get the name of the ordered email pro
                     available_accounts = client.wrap_call(
