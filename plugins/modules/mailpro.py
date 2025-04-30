@@ -175,7 +175,7 @@ def run_module():
                             # Migrate existing mailbox to email pro
                             result = client.wrap_call(
                                 "POST",
-                                '/email/domain/%s/account/%s/migrate/emailpro/%s/destinationEmailAddress/%s/migrate' % (domain, account, service, destination),
+                                '/email/domain/%s/account/%s/migrate/%s/destinationEmailAddress/%s/migrate' % (domain, account, service, destination),
                                 password=password
                             )
                             module.exit_json(msg="{}@{} successfully migrated to email pro".format(account, domain), result=result, changed=True)
