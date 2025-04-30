@@ -25,7 +25,7 @@ options:
         required: true
         default: harddisk
 
-choices: ['harddisk','rescue-customer','ipxe-shell','poweroff']
+choices: ['harddisk','rescue-customer','rescue12-customer','ipxe-shell','poweroff']
         description:
             - Which way you want to boot your dedicated server
     force_reboot:
@@ -81,7 +81,7 @@ def run_module():
             service_name=dict(required=True),
             boot=dict(
                 required=True,
-                choices=["harddisk", "rescue-customer", "ipxe-shell", "poweroff"],
+                choices=["harddisk", "rescue-customer", "rescue12-customer", "ipxe-shell", "poweroff"],
             ),
             force_reboot=dict(required=False, default=False, type="bool"),
         )
