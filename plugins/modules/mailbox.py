@@ -100,7 +100,16 @@ def run_module():
         )
         if account in accounts:
             if module.params['state'] == 'present':
-                module.exit_json(msg="{}@{} already exists".format(account, domain), changed=False)
+                if password:
+                    # Update the password
+                    client.wrap_call(
+                        "POST",
+                        '/email/domain/%s/account/%s/changePassword' % (domain, account),
+                        password=password
+                    )
+                    module.exit_json(msg="{}@{} already exists, password updated".format(account, domain), changed=True)
+                else:
+                    module.exit_json(msg="{}@{} already exists".format(account, domain), changed=False)
             else:
                 result = client.wrap_call("DELETE", '/email/domain/%s/account/%s' % (domain, account))
                 module.exit_json(msg="{}@{} succesfully deleted".format(account, domain), result=result, changed=True)

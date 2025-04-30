@@ -120,7 +120,7 @@ def run_module():
                         '/email/pro/%s/account/%s@%s/changePassword' % (service, account, domain),
                         password=password
                     )
-                    module.exit_json(msg="{}@{} already exists, password updated".format(account, domain), changed=False)
+                    module.exit_json(msg="{}@{} already exists, password updated".format(account, domain), changed=True)
                 else:
                     module.exit_json(msg="{}@{} already exists".format(account, domain), changed=False)
             else:
