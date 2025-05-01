@@ -92,7 +92,7 @@ def run_module():
 
         for progress in progress_status['progress']:
             if progress["status"] == "doing":
-                module.debug('Current progress: %s', progress['comment'])
+                module.debug(msg='Current progress: {}'.format(progress['comment']))
 
         time.sleep(float(sleep))
     module.fail_json(msg="Max wait time reached, about %i x %i seconds" % (i, int(sleep)))
