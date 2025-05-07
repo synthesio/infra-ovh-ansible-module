@@ -124,45 +124,48 @@ def run_module():
                 else:
                     module.exit_json(msg="{}@{} already exists".format(account, domain), changed=False)
             else:
+                # The email pro account will be reset to a @configureme.me config and will be available 
                 result = client.wrap_call("DELETE", '/email/pro/%s/account/%s@%s' % (service, account, domain))
                 module.exit_json(msg="{}@{} successfully deleted".format(account, domain), result=result, changed=True)
         else:
             if module.params['state'] == 'absent':
                 module.exit_json(msg="{}@{} does not exist".format(account, domain), changed=False)
             else:
-                if payment_method_id:
                     # Is there an email pro available
                     available_accounts = client.wrap_call(
                         "GET",
                         '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
                     )
                     if not available_accounts:
-                        # Order a new email pro
-                        orderid = client.wrap_call(
-                            "POST",
-                            '/order/email/pro/%s/account/%s?number=1' % (service, duration),
-                            number=1
-                        )['orderId']
-                        # Pay the order
-                        client.wrap_call(
-                            "POST",
-                            '/me/order/%s/pay' % (orderid),
-                            paymentMethod={"id": payment_method_id}
-                        )
-                        # Get the ordered email pro
-                        timeout = datetime.now() + timedelta(minutes=20)
-                        while not available_accounts:
-                            if datetime.now() > timeout:
-                                module.exit_json(msg="Timeout waiting for an email pro account to become available")
-                            try:
-                                available_accounts = client.wrap_call(
-                                    "GET",
-                                    '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
-                                )
-                                if not available_accounts:
-                                    module.run_command(['sleep', '60'])
-                            except APIError as e:
-                                module.exit_json(msg="Error while waiting for email pro account: %s" % str(e))
+                        if payment_method_id:
+                            # Order a new email pro
+                            orderid = client.wrap_call(
+                                "POST",
+                                '/order/email/pro/%s/account/%s?number=1' % (service, duration),
+                                number=1
+                            )['orderId']
+                            # Pay the order
+                            client.wrap_call(
+                                "POST",
+                                '/me/order/%s/pay' % (orderid),
+                                paymentMethod={"id": payment_method_id}
+                            )
+                            # Get the ordered email pro
+                            timeout = datetime.now() + timedelta(minutes=20)
+                            while not available_accounts:
+                                if datetime.now() > timeout:
+                                    module.exit_json(msg="Timeout waiting for an email pro account to become available")
+                                try:
+                                    available_accounts = client.wrap_call(
+                                        "GET",
+                                        '/email/pro/%s/account?primaryEmailAddress=configureme' % service,
+                                    )
+                                    if not available_accounts:
+                                        module.run_command(['sleep', '60'])
+                                except APIError as e:
+                                    module.exit_json(msg="Error while waiting for email pro account: %s" % str(e))
+                        else:
+                            module.exit_json(msg="Please provide a payment method id to order the email pro account", changed=False)
                     destination = available_accounts[0]
 
                     # Get the list of existing domain mailboxes (!=pro)
@@ -193,15 +196,14 @@ def run_module():
                             mailingfilter=['vaderetro']
                         )
                         if password:
-                            # Change the password of the email pro account
+                            # Set the password of the email pro account
                             client.wrap_call(
                                 "POST",
                                 '/email/pro/%s/account/%s@%s/changePassword' % (service, account, domain),
                                 password=password
                             )
                         module.exit_json(msg="{}@{} successfully created as email pro".format(account, domain), result=result, changed=True)
-                else:
-                    module.exit_json(msg="Please provide a payment method id to create the email pro account", changed=False)
+                
     except APIError as api_error:
         module.fail_json(
             msg="Failed to call OVH API: {0}".format(api_error))
