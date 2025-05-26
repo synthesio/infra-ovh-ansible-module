@@ -38,7 +38,7 @@ options:
 EXAMPLES = r'''
 - name: Reinstall OVH server
   dedicated_server_reinstall:
-    service_name: "ns3255155.ip-217-182-89.eu"
+    service_name: "xxx.ip-xxx-xx-xx.eu"
     operating_system: "debian12_64"
     hostname: "ceph-2"
     ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
