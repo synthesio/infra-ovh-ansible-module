@@ -24,8 +24,8 @@ options:
 EXAMPLES = '''
 - name: Check OVH task status
   dedicated_server_task_status:
-    service_name: "ns3254307.ip-217-182-91.eu"
-    task_id: 469647709
+    service_name: "xxxx.ip-xx-xx-xx.eu"
+    task_id: xxxxxx
   register: task_status
 
 - debug:
