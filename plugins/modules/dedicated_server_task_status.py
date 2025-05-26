@@ -10,8 +10,6 @@ module: dedicated_server_task_status
 short_description: Check the status of an OVH server task
 description:
     - Query OVH API to check the status of a dedicated server task (reinstall, etc.)
-author:
-    - "Adapted by OpenAI from Synthesio style"
 options:
     service_name:
         required: true
