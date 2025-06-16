@@ -24,9 +24,11 @@ options:
         description: The ip address on which firewall is applied
     enabled:
         required: false
-        description: If you want this firewall enabled
+        type: bool
         default: true
-        choices: ['true','false']
+        description:
+          - Whether the firewall should be enabled.
+          - Set to C(false) to create a firewall entry in a disabled state.
     state:
         required: false
         default: present
@@ -44,8 +46,18 @@ EXAMPLES = r'''
   delegate_to: localhost
 '''
 
-RETURN = ''' # '''
-
+RETURN = '''
+msg:
+    description: Message indicating the result of the operation.
+    type: str
+    returned: always
+    sample: Firewall applied on 192.0.2.1
+changed:
+    description: Indicates if any change was made.
+    type: bool
+    returned: always
+    sample: true
+'''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
@@ -74,7 +86,7 @@ def run_module():
 
     if module.check_mode:
         module.exit_json(
-            msg="{} succesfully {} on {} - (dry run mode)".format(
+            msg="{} successfully {} on {} - (dry run mode)".format(
                 ip, state, ip_on_firewall),
             changed=True)
 
@@ -99,7 +111,7 @@ def run_module():
     client.wrap_call("PUT", f"/ip/{ip}/firewall/{ip_on_firewall}", enabled=enabled)
 
     module.exit_json(
-        msg="Firewall applied on {}".format(ip_on_firewall), changed=True
+        msg="Firewall successfully updated on {}".format(ip_on_firewall), changed=True
     )
 
 

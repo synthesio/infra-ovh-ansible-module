@@ -24,8 +24,11 @@ options:
         description: The ip address on which firewall rule is applied
     sequence:
         required: true
-        description: The sequence order of this firewall rule
-        choices: an integer from 0 to 19
+        type: int
+        description:
+          - The sequence number that determines the order of the firewall rule.
+          - Must be an integer between 0 and 19, inclusive.
+          - Each rule must have a unique sequence number; attempting to reuse an existing one will result in an error.
     action:
         required: true
         description: The firewall rule action
@@ -45,7 +48,25 @@ options:
         description: Source port for your rule. Only with TCP/UDP protocol
     tcp_option:
         required: false
-        description: Possible option for TCP
+        type: dict
+        default: {}
+        description:
+          - Additional TCP options for the firewall rule.
+          - Only applicable when C(protocol) is set to C(tcp).
+          - This is a dictionary with optional keys to define TCP-specific behavior.
+        suboptions:
+          fragments:
+            description:
+              - Whether to match fragmented packets.
+            type: bool
+            required: false
+          option:
+            description:
+              - TCP flag condition to match.
+              - Must be either C(established) or C(syn).
+            type: str
+            choices: ['established', 'syn']
+            required: false
     state:
         required: false
         default: present
@@ -66,8 +87,18 @@ EXAMPLES = r'''
   delegate_to: localhost
 '''
 
-RETURN = ''' # '''
-
+RETURN = '''
+msg:
+    description: Message describing the result of the operation.
+    type: str
+    returned: always
+    sample: Rule 0 is applied on 192.0.2.1
+changed:
+    description: Indicates whether any change was made.
+    type: bool
+    returned: always
+    sample: true
+'''
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
 
@@ -104,11 +135,14 @@ def run_module():
     state = module.params['state']
     tcp_option = module.params['tcp_option']
 
+    if not (0 <= sequence <= 19):
+        module.fail_json(msg="The 'sequence' parameter must be an integer between 0 and 19.")
+
     ip = urllib.parse.quote(ip, safe='')
 
     if module.check_mode:
         module.exit_json(
-            msg="{} succesfully {} on {} - (dry run mode)".format(
+            msg="{} successfully {} on {} - (dry run mode)".format(
                 ip, state, ip_on_firewall),
             changed=True)
 
