@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import urllib
-from random import choices
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -10,7 +9,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: ip_firewall_rule
-short_description: Manage an OVH firewall rule for a given IP 
+short_description: Manage an OVH firewall rule for a given IP
 description:
     - Manage an OVH firewall rule for a given IP
 author: Marco Sarti
@@ -55,7 +54,7 @@ options:
 '''
 
 EXAMPLES = r'''
-- name: Open the HTTP port on address 
+- name: Open the HTTP port on address
   synthesio.ovh.ip_firewall_rule:
     ip: "192.0.2.1/24"
     ip_on_firewall: "192.0.2.1"
@@ -63,7 +62,7 @@ EXAMPLES = r'''
     sequence: 0
     protocol: "tcp"
     destination_port: 80
-    action: permit    
+    action: permit
   delegate_to: localhost
 '''
 
@@ -81,7 +80,7 @@ def run_module():
         sequence=dict(required=True, type="int"),
         action=dict(required=True),
         destination_port=dict(required=False, default=None),
-        protocol=dict(choices=['ah','esp','gre','icmp','ipv4','tcp','udp'], required=True),
+        protocol=dict(choices=['ah', 'esp', 'gre', 'icmp', 'ipv4', 'tcp', 'udp'], required=True),
         source=dict(required=False, default=None),
         source_port=dict(required=False, default=None),
         state=dict(choices=['present', 'absent'], default='present'),
@@ -94,16 +93,16 @@ def run_module():
     )
     client = OVH(module)
 
-    ip=module.params['ip']
-    ip_on_firewall=module.params['ip_on_firewall']
-    sequence=module.params['sequence']
-    action=module.params['action']
-    destination_port=module.params['destination_port']
-    protocol=module.params['protocol']
-    source=module.params['source']
-    source_port=module.params['source_port']
-    state=module.params['state']
-    tcp_option=module.params['tcp_option']
+    ip = module.params['ip']
+    ip_on_firewall = module.params['ip_on_firewall']
+    sequence = module.params['sequence']
+    action = module.params['action']
+    destination_port = module.params['destination_port']
+    protocol = module.params['protocol']
+    source = module.params['source']
+    source_port = module.params['source_port']
+    state = module.params['state']
+    tcp_option = module.params['tcp_option']
 
     ip = urllib.parse.quote(ip, safe='')
 
@@ -115,7 +114,7 @@ def run_module():
 
     ips_on_firewall = client.wrap_call("GET", f"/ip/{ip}/firewall")
 
-    if not ip_on_firewall in ips_on_firewall:
+    if ip_on_firewall not in ips_on_firewall:
         module.fail_json(msg="A firewall must be created on IP before managing firewall rules.")
 
     rules = client.wrap_call("GET", f"/ip/{ip}/firewall/{ip_on_firewall}/rule")

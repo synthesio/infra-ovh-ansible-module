@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import urllib
-from random import choices
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -10,7 +9,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: ip_firewall
-short_description: Manage an OVH firewall for a given IP 
+short_description: Manage an OVH firewall for a given IP
 description:
     - Manage an OVH firewall for a given IP
 author: Marco Sarti
@@ -36,7 +35,7 @@ options:
 '''
 
 EXAMPLES = r'''
-- name: Create a new disabled firewall 
+- name: Create a new disabled firewall
   synthesio.ovh.ip_firewall:
     ip: "192.0.2.1/24"
     ip_on_firewall: "192.0.2.1"
@@ -49,6 +48,7 @@ RETURN = ''' # '''
 
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
+
 
 def run_module():
     module_args = ovh_argument_spec()
@@ -65,10 +65,10 @@ def run_module():
     )
     client = OVH(module)
 
-    ip=module.params['ip']
-    ip_on_firewall=module.params['ip_on_firewall']
-    enabled=module.params['enabled']
-    state=module.params['state']
+    ip = module.params['ip']
+    ip_on_firewall = module.params['ip_on_firewall']
+    enabled = module.params['enabled']
+    state = module.params['state']
 
     ip = urllib.parse.quote(ip, safe='')
 
