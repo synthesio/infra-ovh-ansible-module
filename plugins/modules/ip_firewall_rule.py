@@ -11,7 +11,10 @@ DOCUMENTATION = '''
 module: ip_firewall_rule
 short_description: Manage an OVH firewall rule for a given IP
 description:
-    - Manage an OVH firewall rule for a given IP
+  - Manage an OVH firewall rule for a given IP.
+  - Due to limitations of the OVH API, this module is not fully idempotent.
+  - If a rule with the same C(sequence) already exists, the module will fail unless the rule is first deleted.
+  - This is because the API does not allow inspection of all rule attributes to verify whether the rule needs updating.
 author: Marco Sarti
 requirements:
     - ovh >= 0.5.0
