@@ -42,7 +42,7 @@ EXAMPLES = r'''
 
 RETURN = ''' # '''
 
-from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, ovh_argument_spec
+from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import OVH, OVHResourceNotFound, ovh_argument_spec
 import time
 
 
@@ -81,16 +81,19 @@ def run_module():
         if "done" in result['status']:
             module.exit_json(msg="{}: {}".format(result['status'], message), changed=False)
 
-        progress_status = client.wrap_call(
-            "GET",
-            f"/dedicated/server/{service_name}/install/status"
-        )
-        if 'message' in progress_status and progress_status['message'] == 'Server is not being installed or reinstalled at the moment':
-            message = progress_status['message']
-        else:
-            for progress in progress_status['progress']:
-                if progress["status"] == "doing":
-                    message = progress['comment']
+        try:
+            progress_status = client.wrap_call(
+                "GET",
+                f"/dedicated/server/{service_name}/install/status"
+            )
+        except OVHResourceNotFound:
+            module.debug('Got 404ed while trying to get the progress status, installation might be done')
+            continue
+
+        for progress in progress_status['progress']:
+            if progress["status"] == "doing":
+                module.debug(msg='Current progress: {}'.format(progress['comment']))
+
         time.sleep(float(sleep))
     module.fail_json(msg="Max wait time reached, about %i x %i seconds" % (i, int(sleep)))
 

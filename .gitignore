@@ -2,4 +2,4 @@
 
 debian/files
 *.build
-
+.idea
