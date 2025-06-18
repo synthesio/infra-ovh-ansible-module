@@ -101,6 +101,17 @@ Alternatively, you can provide credentials as module attributes:
 
 This allows you to store them in Ansible vault or to use any lookup plugin to retrieve them.
 
+[Module defaults groups](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_module_defaults.html#module-defaults-groups) are supported as well:
+```yaml
+- hosts: all
+  gather_facts: no
+  module_defaults:
+    group/synthesio.ovh.all:
+      application_key: "<YOUR APPLICATION KEY>"
+      application_secret: "<YOUR APPLICATIOM SECRET>"
+      consumer_key: "<YOUR CONSUMER KEY>"
+```
+
 ## Usage
 
 Here are a few examples of what you can do. Please read the module for everything else, it most probably does it!
