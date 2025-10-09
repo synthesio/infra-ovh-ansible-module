@@ -108,7 +108,7 @@ def run_module():
 
     client.wrap_call(
         "POST",
-        f"/dedicated/server/{service_name}/install/start",
+        f"/dedicated/server/{service_name}/reinstall",
         **details,
         templateName=template,
         partitionSchemeName=partition_scheme_name,
