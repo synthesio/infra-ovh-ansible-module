@@ -26,7 +26,7 @@ dedicated_server_boot_wait
 dedicated_server_compatible_templates
 dedicated_server_display_name
 dedicated_server_info
-dedicated_server_install
+dedicated_server_installation
 dedicated_server_install_wait
 dedicated_server_intervention
 dedicated_server_monitoring
@@ -155,12 +155,15 @@ A few examples:
 
 ### Install a new dedicated server
 
+> As of October 7th 2025, installation templates are deprecated. See [KB0061951](https://help.ovhcloud.com/csm/en-dedicated-servers-api-os-installation?id=kb_article_view&sysparm_article=KB0061951)
+> Most of the customizations must be specified using the ``customizations`` parameter
+> To get the list of available values for ``operating_systems``, check [OVH API console](https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#get-/dedicated/server/-serviceName-/install/compatibleTemplates)
 ```yaml
 - name: Install new dedicated server
-  synthesio.ovh.dedicated_server_install:
+  synthesio.ovh.dedicated_server_installation:
     service_name: "ns12345.ip-1-2-3.eu"
     hostname: "server01.example.net"
-    template: "debian10_64"
+    operating_system: "debian13_64"
 
 - name: Wait for the server installation
   synthesio.ovh.dedicated_server_install_wait:
@@ -169,16 +172,29 @@ A few examples:
     sleep: "10"
 ```
 
-### Install a new dedicated server with only 2 disks
+### Install a new dedicated server with sshKey and a partition scheme
 
 ```yaml
 - name: Install new dedicated server
   synthesio.ovh.dedicated_server_install:
     service_name: "ns12345.ip-1-2-3.eu"
-    hostname: "server01.example.net"
-    template: "debian10_64"
-    soft_raid_devices: "2"
+    operating_system: "debian13_64"
+    customizations:
+      hostname: "server01.example.net"
+      sshKey: "{{ lookup('file', '~/.ssh/id_rsa.pub' }}"
+    storage:
+      - diskGroupId: 1
+        partitioning:
+          disks: 2
+          layout:
+            - fileSystem: ext4
+              mountPoint: /boot
+              size: 1024
+            - fileSystem: ext4
+              mountPoint: /
+              size: 0
 
+    template: "debian10_64"
 ```
 
 ### Install a public cloud instance
