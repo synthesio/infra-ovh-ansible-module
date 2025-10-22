@@ -25,17 +25,23 @@ dedicated_server_boot
 dedicated_server_boot_wait
 dedicated_server_compatible_templates
 dedicated_server_display_name
+dedicated_server_engagement_strategy
+dedicated_server_hardware_info
 dedicated_server_info
 dedicated_server_installation
 dedicated_server_install_wait
 dedicated_server_intervention
+dedicated_server_ip_info
 dedicated_server_monitoring
+dedicated_server_network_info
 dedicated_server_networkinterfacecontroller
 dedicated_server_rescuesshkey
 dedicated_server_terminate
 dedicated_server_vrack
 domain
 installation_template
+ip_firewall
+ip_firewall_rule
 ip_info
 ip_move
 ip_reverse
@@ -55,6 +61,7 @@ public_cloud_monthly_billing
 public_cloud_object_storage
 public_cloud_object_storage_policy
 public_cloud_private_network_info
+public_cloud_sshkey
 vps_display_name
 vps_info
 ```
@@ -162,8 +169,9 @@ A few examples:
 - name: Install new dedicated server
   synthesio.ovh.dedicated_server_installation:
     service_name: "ns12345.ip-1-2-3.eu"
-    hostname: "server01.example.net"
-    operating_system: "debian13_64"
+    operating_system: "debian12_64"
+    customizations:
+      hostname: "server01.example.net"
 
 - name: Wait for the server installation
   synthesio.ovh.dedicated_server_install_wait:
