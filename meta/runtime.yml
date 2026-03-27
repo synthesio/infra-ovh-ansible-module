@@ -35,6 +35,8 @@ action_groups:
     - public_cloud_instance
     - public_cloud_instance_shelving
     - public_cloud_monthly_billing
+    - public_cloud_kube_nodepool
+    - public_cloud_kube_nodepool_info
     - public_cloud_object_storage_policy
     - public_cloud_object_storage
     - public_cloud_private_network_info
@@ -72,6 +74,8 @@ action_groups:
     - public_cloud_instance
     - public_cloud_instance_shelving
     - public_cloud_monthly_billing
+    - public_cloud_kube_nodepool
+    - public_cloud_kube_nodepool_info
     - public_cloud_object_storage_policy
     - public_cloud_object_storage
     - public_cloud_private_network_info
