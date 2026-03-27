@@ -61,6 +61,7 @@ public_cloud_monthly_billing
 public_cloud_object_storage
 public_cloud_object_storage_policy
 public_cloud_private_network_info
+public_cloud_kube_info
 public_cloud_sshkey
 vps_display_name
 vps_info
