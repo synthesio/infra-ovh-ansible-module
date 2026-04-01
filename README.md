@@ -62,6 +62,10 @@ public_cloud_object_storage
 public_cloud_object_storage_policy
 public_cloud_private_network_info
 public_cloud_sshkey
+public_cloud_valkey
+public_cloud_valkey_info
+public_cloud_valkey_user
+public_cloud_valkey_user_info
 vps_display_name
 vps_info
 ```
