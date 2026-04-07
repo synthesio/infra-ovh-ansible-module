@@ -14,7 +14,9 @@ module: public_cloud_private_network_info
 short_description: Get information about private networks for a given region.
 
 description:
-    - Get the openstack id for a private network depending on the region.
+    - When C(private_network) and C(region) are provided, return the OpenStack ID
+      of the network for that region.
+    - When neither is provided, return full details of all private networks.
 
 requirements:
     - ovh >= 0.5.0
@@ -24,11 +26,11 @@ options:
         required: true
         description: The service name
     private_network:
-        required: true
-        description: The OVH private network
+        required: false
+        description: The OVH private network ID. Required together with C(region).
     region:
-        required: true
-        description: The region where to lookup for network
+        required: false
+        description: The region where to lookup for network. Required together with C(private_network).
 """
 
 EXAMPLES = r"""
@@ -44,10 +46,15 @@ EXAMPLES = r"""
 
 RETURN = r"""
 openstack_id:
-    description: Openstack alpha numeric identifier of the network
-    returned: when matching region is found
+    description: OpenStack identifier of the network. Returned when C(private_network) and C(region) are provided.
+    returned: when private_network and region are provided
     type: str
     sample: 54e97ee2-407c-4dbc-a833-39d2910514d4
+networks:
+    description: List of all private networks. Returned when no filter is provided.
+    returned: when neither private_network nor region are provided
+    type: list
+    elements: dict
 # """
 
 from ansible_collections.synthesio.ovh.plugins.module_utils.ovh import (
@@ -61,17 +68,27 @@ def run_module():
     module_args.update(
         dict(
             service_name=dict(required=True),
-            private_network=dict(required=True),
-            region=dict(required=True),
+            private_network=dict(required=False, default=None),
+            region=dict(required=False, default=None),
         )
     )
 
-    module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec=module_args,
+        required_together=[("private_network", "region")],
+        supports_check_mode=True,
+    )
     client = OVH(module)
 
     service_name = module.params["service_name"]
     private_network = module.params["private_network"]
     region = module.params["region"]
+
+    if not private_network and not region:
+        networks = client.wrap_call(
+            "GET", f"/cloud/project/{service_name}/network/private"
+        )
+        module.exit_json(changed=False, networks=networks)
 
     network_list = client.wrap_call(
         "GET", f"/cloud/project/{service_name}/network/private/{private_network}"
