@@ -61,6 +61,7 @@ public_cloud_monthly_billing
 public_cloud_object_storage
 public_cloud_object_storage_policy
 public_cloud_private_network_info
+public_cloud_kube_info
 public_cloud_sshkey
 public_cloud_user_info
 public_cloud_user_s3credentials_info
